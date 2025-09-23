@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+        <head>
+                <meta charset="UTF-8" />
+                <title>ALPSC Visits</title>
+                <link rel="stylesheet" href="assets/pico.min.css" />
+                <script defer src="assets/alpine.min.js"></script>
+        </head>
+        <body>
+                <main class="container" x-data="visitCounter">
+                        <h1>Visit Counter</h1>
+                        <p>Visits: <span x-text="count"></span></p>
+                        <p>Last visit: <span x-text="last"></span></p>
+                        <button @click="addVisit">Add Visit</button>
+                </main>
+
+                <script>
+                        document.addEventListener('alpine:init', () => {
+                                Alpine.data('visitCounter', () => ({
+                                        count: 0,
+                                        last: '',
+                                        async init() {
+                                                await this.loadData();
+                                        },
+                                        async loadData() {
+                                                const res = await fetch('/api/main.cgi');
+                                                const text = await res.text();
+                                                const [count, last] = text.trim().split(' ');
+                                                this.count = parseInt(count);
+                                                this.last = last || '';
+                                        },
+                                        async addVisit() {
+                                                await fetch('/api/main.cgi?action=increase');
+                                                await this.loadData();
+                                        },
+                                }));
+                        });
+                </script>
+        </body>
+</html>
