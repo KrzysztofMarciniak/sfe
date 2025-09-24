@@ -12,6 +12,7 @@
  * and returns a JSON success or error response.
  */
 
+#include <ctype.h>
 #include <json-c/json.h>
 #include <sqlite3.h>
 #include <stdbool.h>
@@ -22,12 +23,13 @@
 #include "lib/dal/user/user.h"
 #include "lib/die/die.h"
 #include "lib/hash_password/hash_password.h"
-#include "lib/json_response/json_response.h"
 #include "lib/models/user_model/user_model.h"
+#include "lib/response/response.h"
 #include "lib/sanitizer/sanitizer.h"
 
 #define DB_PATH "/data/sfe.db"
-#define DEBUG 1
+#define DEBUG 0
+
 // Read entire stdin body (POST data)
 static char *read_post_data(void) {
         const char *len_str = getenv("CONTENT_LENGTH");
@@ -39,128 +41,154 @@ static char *read_post_data(void) {
         char *body = malloc(len + 1);
         if (!body) return NULL;
 
-        fread(body, 1, len, stdin);
+        size_t read_len = fread(body, 1, len, stdin);
+        if (read_len != (size_t)len) {
+                free(body);
+                return NULL;
+        }
+
         body[len] = '\0';
         return body;
 }
 
-int main(void) {
-        printf("Content-Type: application/json\r\n\r\n");
+/**
+ * @brief Validate username with max length 12.
+ *
+ * Returns NULL if valid, otherwise returns a static error message.
+ *
+ * @param str Username string to validate.
+ * @return NULL if valid, error message otherwise.
+ */
+const char *validate_username(const char *str) {
+        if (!str || *str == '\0') {
+                return "username is empty";
+        }
 
+        size_t len = strlen(str);
+        if (len > 12) {
+                return "username too long (12 characters max)";
+        }
+
+        for (size_t i = 0; i < len; i++) {
+                if (!(isalnum((unsigned char)str[i]) || str[i] == '_')) {
+                        return "username is invalid (only alphanumeric or underscore allowed)";
+                }
+        }
+
+        return NULL;// valid
+}
+
+int main(void) {
         // Enforce POST method
         const char *method = getenv("REQUEST_METHOD");
         if (!method || strcmp(method, "POST") != 0) {
-                JsonResponse *res = return_json(405);
-                res->set_message(res, "Method Not Allowed");
-                printf("%s\n", res->build(res));
-                res->free(res);
+                response(405, "Method Not Allowed");
                 return 0;
         }
 
         // Read POST data
         char *body = read_post_data();
-        if (!body || !validate_json(body)) {
-                JsonResponse *res = return_json(400);
-                res->set_message(res, "Invalid or missing JSON body.");
-                printf("%s\n", res->build(res));
-                res->free(res);
-                free(body);
+        if (!body) {
+                response(400, "Invalid or missing JSON body");
                 return 0;
         }
 
         // Parse JSON
-        struct json_object *jobj       = json_tokener_parse(body);
+        struct json_object *jobj = json_tokener_parse(body);
+        free(body);// free raw POST data immediately
+
+        if (!jobj) {
+                response(400, "Malformed JSON");
+                return 0;
+        }
+
         struct json_object *j_username = NULL, *j_password = NULL;
-
-        free(body);// no longer needed
-
-        if (!jobj || !json_object_object_get_ex(jobj, "username", &j_username) ||
+        if (!json_object_object_get_ex(jobj, "username", &j_username) ||
             !json_object_object_get_ex(jobj, "password", &j_password)) {
-                JsonResponse *res = return_json(400);
-                res->set_message(res, "Missing username or password.");
-                printf("%s\n", res->build(res));
-                res->free(res);
                 json_object_put(jobj);
+                response(400, "Missing username or password.");
                 return 0;
         }
 
-        const char *username = json_object_get_string(j_username);
-        const char *password = json_object_get_string(j_password);
+        const char *username_raw = json_object_get_string(j_username);
+        const char *password     = json_object_get_string(j_password);
 
-        // Validate inputs
-        if (!username || !validate_username(username) || !password || strlen(password) < 6) {
-                JsonResponse *res = return_json(400);
-                res->set_message(res, "Invalid username or password.");
-                printf("%s\n", res->build(res));
-                res->free(res);
+        if (!username_raw) {
                 json_object_put(jobj);
+                response(400, "Username must be a string.");
                 return 0;
         }
 
-        json_object_put(jobj);// free JSON
+        if (!password || strlen(password) < 6) {
+                json_object_put(jobj);
+                response(400, "Password must be at least 6 characters.");
+                return 0;
+        }
+
+        const char *validation_err = validate_username(username_raw);
+        if (validation_err) {
+                json_object_put(jobj);
+                response(400, validation_err);
+                return 0;
+        }
+
+        char username_sanitized[64];// safely large buffer
+        if (!sanitize(username_sanitized, username_raw, sizeof(username_sanitized))) {
+                json_object_put(jobj);
+                response(400, "Failed to sanitize username.");
+                return 0;
+        }
+
+        json_object_put(jobj);// free JSON object
 
         // Hash password
         char *password_hash = hash_password(password);
         if (!password_hash) {
-                JsonResponse *res = return_json(500);
-                res->set_message(res, "Password hashing failed.");
-                printf("%s\n", res->build(res));
-                res->free(res);
+                response(500, "Password hashing failed.");
                 return 0;
         }
 
-        // Build user
-        user_t user = {.id            = -1,
-                       .username      = (char *)username,// not freed here
-                       .password_hash = password_hash};
+        // Build user object
+        user_t user = {.id = -1, .username = username_sanitized, .password_hash = password_hash};
 
         // Open DB
         sqlite3 *db = NULL;
         if (sqlite3_open(DB_PATH, &db) != SQLITE_OK) {
-                JsonResponse *res = return_json(500);
 #if DEBUG
-                // Include the SQLite error message in the JSON response
                 char err_msg[256];
                 snprintf(err_msg, sizeof(err_msg), "Failed to open database: %s",
                          sqlite3_errmsg(db));
-                res->set_message(res, err_msg);
+                response(500, err_msg);
 #else
-                res->set_message(res, "Failed to open database.");
+                response(500, "Failed to open database.");
 #endif
-
-                printf("%s\n", res->build(res));
-                res->free(res);
                 sqlite3_close(db);
                 free(password_hash);
                 return 0;
         }
+
         // Insert user
         char errbuf[256] = {0};
         int rc           = user_insert(db, &user, errbuf, sizeof(errbuf));
+
         sqlite3_close(db);
         free(password_hash);
 
         if (rc != 0) {
-                JsonResponse *res = return_json(400);
                 if (rc == -3 && strstr(errbuf, "UNIQUE constraint failed")) {
-                        res->set_message(res, "Username already exists.");
+                        response(400, "Username already exists.");
                 } else {
 #if DEBUG
-                        res->set_message(res, errbuf);
+                        response(400, errbuf);
 #else
-                        res->set_message(res, "Failed to register user.");
+                        response(400, "Failed to register user.");
 #endif
                 }
-                printf("%s\n", res->build(res));
-                res->free(res);
                 return 0;
         }
 
         // Success
-        JsonResponse *res = return_json(201);
-        res->set_message(res, "User registered successfully.");
-        printf("%s\n", res->build(res));
-        res->free(res);
+        response(201, "User registered successfully.");
 
         return 0;
 }

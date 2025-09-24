@@ -1,89 +1,32 @@
-/**
- * @file sanitizer.h
- * @brief String sanitization and validation utilities.
- *
- * Provides basic sanitization and validation functions for common use cases
- * such as trimming whitespace, validating usernames or tokens, escaping SQL
- * strings, and checking basic JSON format.
- */
-
 #ifndef SANITIZER_H
 #define SANITIZER_H
 
-#include <ctype.h>
-#include <stdbool.h>
 #include <stddef.h>
-#include <string.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
- * @brief Trim leading and trailing whitespace from a string (in place).
+ * @brief Sanitize an input string for safe embedding in SQL string literals.
  *
- * Modifies the input string to remove leading and trailing whitespace
- * characters (spaces, tabs, newlines, etc.). The operation is performed in
- * place, so no new memory is allocated.
+ * This function:
+ *  - trims leading and trailing whitespace,
+ *  - collapses/control-removes non-printable/control characters,
+ *  - neutralizes common SQL comment/statement tokens
+ *    by replacing them with single spaces,
+ *  - escapes single quotes by doubling them (''), and
+ *  - escapes backslashes by doubling them (\\).
  *
- * @param str String to trim. Must be null-terminated and writable.
- * @return Pointer to the trimmed string. This may point to a different location
- *         within the original string if leading whitespace is removed.
+ * The sanitized string is written into the provided `dest` buffer (NUL-terminated).
+ *
+ * @note This helper is defensive and useful when you absolutely must build an SQL
+ *       literal by string concatenation. The **preferred** approach is to use
+ *       parameterized/prepared statements (e.g., sqlite3_bind_text) which avoid
+ *       SQL injection entirely.
+ *
+ * @param dest      Destination buffer to receive the sanitized string.
+ *                  Must be writable and at least `dest_size` bytes long.
+ * @param src       Source NUL-terminated input string.
+ * @param dest_size Size of the destination buffer in bytes (including NUL).
+ * @return Pointer to dest on success, or NULL on error (invalid args or insufficient buffer).
  */
-char *str_trim(char *str);
+char *sanitize(char *dest, const char *src, size_t dest_size);
 
-/**
- * @brief Check if a string is a valid username.
- *
- * A valid username contains only alphanumeric characters (`a-z`, `A-Z`, `0-9`)
- * and underscores (`_`), and must not be empty.
- *
- * @param str Null-terminated input string.
- * @return `true` if the string is a valid username, `false` otherwise.
- */
-bool validate_username(const char *str);
-
-/**
- * @brief Perform a basic JSON format validation.
- *
- * This is a lightweight check that only verifies if the string starts with
- * a `{` (object) or `[` (array), indicating possible JSON structure. This does
- * not perform full JSON parsing or validation.
- *
- * @param str Null-terminated input string.
- * @return `true` if the string appears to be JSON, `false` otherwise.
- */
-bool validate_json(const char *str);
-
-/**
- * @brief Escape single quotes in a SQL string.
- *
- * Escapes single quotes (`'`) by doubling them (`''`) in the source string
- * and stores the result in the destination buffer. Useful for preventing
- * basic SQL injection when inserting values directly into SQL statements.
- *
- * @param dest Destination buffer where the escaped string is written.
- * @param src Source string to escape.
- * @param dest_size Size of the destination buffer (in bytes).
- * @return `true` on success, `false` if `dest_size` is insufficient.
- */
-bool sql_escape(char *dest, const char *src, size_t dest_size);
-
-/**
- * @brief Validate a token string (e.g., API/session token).
- *
- * Checks that the token contains only allowed characters (alphanumeric and
- * optionally a limited set of safe symbols), and that its length does not
- * exceed `max_len`.
- *
- * @param token Null-terminated token string to validate.
- * @param max_len Maximum allowed length (not including null terminator).
- * @return `true` if the token is valid, `false` otherwise.
- */
-bool validate_token(const char *token, size_t max_len);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif// SANITIZER_H
+#endif /* SANITIZER_H */

@@ -6,7 +6,7 @@ output_file="build.ninja"
 # Start writing build.ninja
 cat > "$output_file" << 'EOF'
 rule compile
-  command = tcc -L./ $in -o $out -lsqlite3 -ljson-c -lcrypto
+  command = tcc -L./ $in -o $out -lsqlite3 -ljson-c -lcrypto 
   description = Compiling $in to $out
 
 EOF
