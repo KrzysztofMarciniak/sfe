@@ -1,7 +1,6 @@
 FROM alpine:latest
 
-# Install dependencies
-RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip
+RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip json-c-dev check-dev doxygen
 
 WORKDIR /app
 
@@ -28,13 +27,12 @@ RUN ninja -C .
 WORKDIR /app/web
 COPY web/lighttpd.conf ./lighttpd.conf
 
-# Create SQLite DB and table, then set permissions
-RUN mkdir -p /data && \
-    sqlite3 /data/alpsc.db "CREATE TABLE IF NOT EXISTS visits (id INTEGER PRIMARY KEY AUTOINCREMENT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);" && \
-    chown -R nobody:nogroup /data && \
-    chmod -R 777 /data
+COPY entrypoint.sh /app/entrypoint.sh
+COPY backend/deoxygen_entrypoint.sh /app/backend/deoxygen_entrypoint.sh
+COPY backend/sqlite_entrypoint.sh /app/backend/sqlite_entrypoint.sh
 
+RUN chmod +x /app/entrypoint.sh /app/backend/sqlite_entrypoint.sh
 
 EXPOSE 8080
-CMD ["lighttpd", "-D", "-f", "lighttpd.conf"]
 
+CMD ["/app/entrypoint.sh"]
