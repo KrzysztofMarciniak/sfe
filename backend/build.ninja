@@ -1,6 +1,5 @@
 rule compile
-  command = tcc -L./ main.c -o main.cgi -lsqlite3 -ljson-c
-  description = Compiling main.c to main.cgi
+  command = tcc -L./ hello_world.c -o main.cgi -lsqlite3 -ljson-c
+  description = Compiling hello_world.c to hello_world.cgi
 
-build main.cgi: compile main.c
-
+build hello_world.cgi: compile hello_world.c

@@ -21,14 +21,17 @@ RUN mkdir -p /tmp/lighttpd/deflate && chmod 1777 /tmp/lighttpd/deflate
 
 # Build backend with Ninja
 WORKDIR /app/backend
-RUN ninja -C .
+COPY backend/generate_build.sh /app/backend/generate_build.sh
+RUN chmod +x /app/backend/generate_build.sh \
+    && ./generate_build.sh \
+    && ninja -C .
 
 # Copy lighttpd config
 WORKDIR /app/web
 COPY web/lighttpd.conf ./lighttpd.conf
 
 COPY entrypoint.sh /app/entrypoint.sh
-COPY backend/deoxygen_entrypoint.sh /app/backend/deoxygen_entrypoint.sh
+COPY backend/doxygen_entrypoint.sh /app/backend/doxygen_entrypoint.sh
 COPY backend/sqlite_entrypoint.sh /app/backend/sqlite_entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh /app/backend/sqlite_entrypoint.sh
