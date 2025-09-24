@@ -47,41 +47,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lib/read_post_data/read_post_data.h"
 #include "lib/response/response.h"
-
-/**
- * @brief Reads POST request body from stdin based on CONTENT_LENGTH.
- *
- * Reads exactly CONTENT_LENGTH bytes from stdin, allocates a buffer
- * to hold the data, and null-terminates it.
- *
- * Limits CONTENT_LENGTH to a maximum of 8192 bytes for safety.
- *
- * @return Pointer to a null-terminated string containing the POST data on success.
- *         NULL on failure (missing CONTENT_LENGTH, invalid length, memory allocation failure,
- *         or incomplete read).
- *
- * @note Caller is responsible for freeing the returned buffer.
- */
-static char *read_post_data(void) {
-        const char *len_str = getenv("CONTENT_LENGTH");
-        if (!len_str) return NULL;
-
-        long len = strtol(len_str, NULL, 10);
-        if (len <= 0 || len > 8192) return NULL;
-
-        char *data = malloc(len + 1);
-        if (!data) return NULL;
-
-        size_t read_len = fread(data, 1, len, stdin);
-        if (read_len != (size_t)len) {
-                free(data);
-                return NULL;
-        }
-
-        data[len] = '\0';
-        return data;
-}
 
 /**
  * @brief Main entry point of the CGI program.

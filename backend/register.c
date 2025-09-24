@@ -21,43 +21,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lib/csrf/csrf.h"// Assuming csrf_validate_token is declared here
+#include "lib/csrf/csrf.h"
 #include "lib/dal/user/user.h"
 #include "lib/die/die.h"
 #include "lib/hash_password/hash_password.h"
 #include "lib/models/user_model/user_model.h"
+#include "lib/read_post_data/read_post_data.h"
 #include "lib/response/response.h"
 #include "lib/sanitizer/sanitizer.h"
 
 #define DB_PATH "/data/sfe.db"
 #define DEBUG 0
-
-/**
- * @brief Reads the entire POST data from stdin based on CONTENT_LENGTH.
- *
- * @return Pointer to allocated null-terminated buffer containing POST data,
- *         or NULL on failure.
- *         Caller is responsible for freeing the returned buffer.
- */
-static char *read_post_data(void) {
-        const char *len_str = getenv("CONTENT_LENGTH");
-        if (!len_str) return NULL;
-
-        long len = strtol(len_str, NULL, 10);
-        if (len <= 0 || len > 65536) return NULL;
-
-        char *body = malloc(len + 1);
-        if (!body) return NULL;
-
-        size_t read_len = fread(body, 1, len, stdin);
-        if (read_len != (size_t)len) {
-                free(body);
-                return NULL;
-        }
-
-        body[len] = '\0';
-        return body;
-}
 
 /**
  * @brief Validate username with max length 12.
