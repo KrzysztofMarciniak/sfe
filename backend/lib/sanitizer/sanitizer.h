@@ -86,4 +86,4 @@ bool validate_token(const char *token, size_t max_len);
 }
 #endif
 
-#endif  // SANITIZER_H
+#endif// SANITIZER_H

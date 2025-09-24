@@ -36,49 +36,49 @@ typedef struct JsonResponse JsonResponse;
  * arranged to allow method chaining.
  */
 struct JsonResponse {
-    /** HTTP status code of the response (e.g., 200, 400). */
-    int status;
+        /** HTTP status code of the response (e.g., 200, 400). */
+        int status;
 
-    /** Optional message string included in the response JSON.
-     *
-     * Ownership: the JsonResponse instance owns this buffer and will free it
-     * when the instance's free method is called. May be NULL if unset.
-     */
-    char *msg;
+        /** Optional message string included in the response JSON.
+         *
+         * Ownership: the JsonResponse instance owns this buffer and will free it
+         * when the instance's free method is called. May be NULL if unset.
+         */
+        char *msg;
 
-    /** json-c object used to build the JSON payload. Managed by the instance.
-     */
-    json_object *json_obj;
+        /** json-c object used to build the JSON payload. Managed by the instance.
+         */
+        json_object *json_obj;
 
-    /**
-     * @brief Set the message for the JSON response.
-     * @param self Pointer to the JsonResponse instance.
-     * @param msg Null-terminated message string to copy into the instance.
-     * @return Pointer to the same JsonResponse instance to allow chaining.
-     *
-     * The function should copy the provided @p msg (or set to NULL) and update
-     * the internal json_obj accordingly.
-     */
-    JsonResponse *(*set_message)(JsonResponse *self, const char *msg);
+        /**
+         * @brief Set the message for the JSON response.
+         * @param self Pointer to the JsonResponse instance.
+         * @param msg Null-terminated message string to copy into the instance.
+         * @return Pointer to the same JsonResponse instance to allow chaining.
+         *
+         * The function should copy the provided @p msg (or set to NULL) and update
+         * the internal json_obj accordingly.
+         */
+        JsonResponse *(*set_message)(JsonResponse *self, const char *msg);
 
-    /**
-     * @brief Build the JSON string from the status and message.
-     * @param self Pointer to the JsonResponse instance.
-     * @return Const pointer to a null-terminated JSON string.
-     *
-     * The returned string is owned by the JsonResponse instance and remains
-     * valid until the instance is modified or freed.
-     */
-    const char *(*build)(JsonResponse *self);
+        /**
+         * @brief Build the JSON string from the status and message.
+         * @param self Pointer to the JsonResponse instance.
+         * @return Const pointer to a null-terminated JSON string.
+         *
+         * The returned string is owned by the JsonResponse instance and remains
+         * valid until the instance is modified or freed.
+         */
+        const char *(*build)(JsonResponse *self);
 
-    /**
-     * @brief Free the JsonResponse and all associated resources.
-     * @param self Pointer to the JsonResponse instance to free.
-     *
-     * This function must free the msg buffer, free/destroy the json_obj,
-     * and finally free the JsonResponse struct itself.
-     */
-    void (*free)(JsonResponse *self);
+        /**
+         * @brief Free the JsonResponse and all associated resources.
+         * @param self Pointer to the JsonResponse instance to free.
+         *
+         * This function must free the msg buffer, free/destroy the json_obj,
+         * and finally free the JsonResponse struct itself.
+         */
+        void (*free)(JsonResponse *self);
 };
 
 /**

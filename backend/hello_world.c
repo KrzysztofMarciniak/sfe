@@ -42,31 +42,29 @@
  * @retval 1 Failure due to memory allocation error
  */
 int main(void) {
-    // Retrieve HTTP request method from environment
-    const char *method = getenv("REQUEST_METHOD");
+        // Retrieve HTTP request method from environment
+        const char *method = getenv("REQUEST_METHOD");
 
-    JsonResponse *resp = method && strcmp(method, "GET") == 0
-                             ? return_json(200)
-                             : return_json(405);
+        JsonResponse *resp =
+            method && strcmp(method, "GET") == 0 ? return_json(200) : return_json(405);
 
-    // Check for allocation failure
-    if (!resp) {
-        die(500, "Memory allocation failed.");
-        return 1;
-    }
+        // Check for allocation failure
+        if (!resp) {
+                die(500, "Memory allocation failed.");
+                return 1;
+        }
 
-    // Set HTTP headers for JSON response
-    printf("Content-Type: application/json\r\n\r\n");
+        // Set HTTP headers for JSON response
+        printf("Content-Type: application/json\r\n\r\n");
 
-    // Set appropriate message
-    resp->set_message(resp, method && strcmp(method, "GET") == 0
-                                ? "Hello, World"
-                                : "Method Not Allowed");
+        // Set appropriate message
+        resp->set_message(
+            resp, method && strcmp(method, "GET") == 0 ? "Hello, World" : "Method Not Allowed");
 
-    // Output JSON response
-    printf("%s\n", resp->build(resp));
+        // Output JSON response
+        printf("%s\n", resp->build(resp));
 
-    // Clean up allocated resources
-    resp->free(resp);
-    return 0;
+        // Clean up allocated resources
+        resp->free(resp);
+        return 0;
 }

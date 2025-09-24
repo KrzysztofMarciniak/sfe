@@ -44,4 +44,4 @@ int verify_password(const char *password, const char *stored_hash);
 }
 #endif
 
-#endif  // HASH_PASSWORD_H
+#endif// HASH_PASSWORD_H

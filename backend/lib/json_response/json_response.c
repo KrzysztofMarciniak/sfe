@@ -25,15 +25,15 @@
  * @return Pointer to the JsonResponse for method chaining.
  */
 static JsonResponse *set_message(JsonResponse *resp, const char *msg) {
-    if (!resp) return NULL;
-    if (resp->msg) {
-        free(resp->msg);
-        resp->msg = NULL;
-    }
-    if (msg) {
-        resp->msg = strdup(msg);
-    }
-    return resp;
+        if (!resp) return NULL;
+        if (resp->msg) {
+                free(resp->msg);
+                resp->msg = NULL;
+        }
+        if (msg) {
+                resp->msg = strdup(msg);
+        }
+        return resp;
 }
 
 /**
@@ -51,30 +51,29 @@ static JsonResponse *set_message(JsonResponse *resp, const char *msg) {
  */
 
 static const char *build_json(JsonResponse *resp) {
-    if (!resp) return "{\"error\":\"invalid response\"}";
+        if (!resp) return "{\"error\":\"invalid response\"}";
 
-    /* Create a new JSON object for each build to ensure clean state */
-    json_object *obj = json_object_new_object();
-    if (!obj) {
-        return "{\"error\":\"json object creation failed\"}";
-    }
+        /* Create a new JSON object for each build to ensure clean state */
+        json_object *obj = json_object_new_object();
+        if (!obj) {
+                return "{\"error\":\"json object creation failed\"}";
+        }
 
-    /* Add status */
-    json_object_object_add(obj, "status", json_object_new_int(resp->status));
+        /* Add status */
+        json_object_object_add(obj, "status", json_object_new_int(resp->status));
 
-    /* Add message if present */
-    if (resp->msg) {
-        json_object_object_add(obj, "message",
-                               json_object_new_string(resp->msg));
-    }
+        /* Add message if present */
+        if (resp->msg) {
+                json_object_object_add(obj, "message", json_object_new_string(resp->msg));
+        }
 
-    /* Replace previous json_obj with the new one (decrement refcount of old) */
-    if (resp->json_obj) {
-        json_object_put(resp->json_obj);
-    }
-    resp->json_obj = obj;
+        /* Replace previous json_obj with the new one (decrement refcount of old) */
+        if (resp->json_obj) {
+                json_object_put(resp->json_obj);
+        }
+        resp->json_obj = obj;
 
-    return json_object_to_json_string_ext(obj, JSON_C_TO_STRING_PLAIN);
+        return json_object_to_json_string_ext(obj, JSON_C_TO_STRING_PLAIN);
 }
 
 /**
@@ -86,10 +85,10 @@ static const char *build_json(JsonResponse *resp) {
  * @param resp Pointer to the JsonResponse instance to free.
  */
 static void free_response(JsonResponse *resp) {
-    if (!resp) return;
-    if (resp->msg) free(resp->msg);
-    if (resp->json_obj) json_object_put(resp->json_obj);
-    free(resp);
+        if (!resp) return;
+        if (resp->msg) free(resp->msg);
+        if (resp->json_obj) json_object_put(resp->json_obj);
+        free(resp);
 }
 
 /**
@@ -103,15 +102,15 @@ static void free_response(JsonResponse *resp) {
  * failure.
  */
 JsonResponse *return_json(int status) {
-    JsonResponse *resp = malloc(sizeof(JsonResponse));
-    if (!resp) {
-        return NULL;
-    }
-    resp->status = status;
-    resp->msg = NULL;
-    resp->json_obj = NULL;
-    resp->set_message = set_message;
-    resp->build = build_json;
-    resp->free = free_response;
-    return resp;
+        JsonResponse *resp = malloc(sizeof(JsonResponse));
+        if (!resp) {
+                return NULL;
+        }
+        resp->status      = status;
+        resp->msg         = NULL;
+        resp->json_obj    = NULL;
+        resp->set_message = set_message;
+        resp->build       = build_json;
+        resp->free        = free_response;
+        return resp;
 }

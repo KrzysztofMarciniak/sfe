@@ -8,9 +8,9 @@
  * @brief Represents a user with ID, username, and password hash.
  */
 typedef struct {
-    int id;              /**< User ID, -1 if unset */
-    char *username;      /**< Username string (dynamically allocated) */
-    char *password_hash; /**< Password hash string (dynamically allocated) */
+        int id;              /**< User ID, -1 if unset */
+        char *username;      /**< Username string (dynamically allocated) */
+        char *password_hash; /**< Password hash string (dynamically allocated) */
 } user_t;
 
 /**
@@ -40,4 +40,4 @@ user_t *json_to_user(const char *json_str);
  */
 void user_free(user_t *user);
 
-#endif  // USER_MODEL_H
+#endif// USER_MODEL_H

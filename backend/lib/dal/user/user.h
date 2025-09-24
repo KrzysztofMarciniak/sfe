@@ -21,8 +21,7 @@ extern "C" {
  * @param user Pointer to user_t with username and password_hash filled.
  * @return 0 on success, non-zero on failure.
  */
-int user_insert(sqlite3 *db, const user_t *user, char *errbuf,
-                size_t errbuf_len);
+int user_insert(sqlite3 *db, const user_t *user, char *errbuf, size_t errbuf_len);
 
 /**
  * @brief Fetch a user from the database by username.
@@ -38,4 +37,4 @@ user_t *user_fetch_by_username(sqlite3 *db, const char *username);
 }
 #endif
 
-#endif  // DAL_USER_H
+#endif// DAL_USER_H
