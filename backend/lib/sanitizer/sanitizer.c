@@ -4,16 +4,37 @@
 #include <string.h>
 
 /**
- * @brief Sanitize a string for safe usage
+ * @brief Sanitizes a string for safe usage in contexts like SQL literals.
  *
- * Trims leading and trailing whitespace (including multibyte-safe)
- * and escapes single quotes by doubling them to prevent SQL injection.
- * Writes sanitized string into dest buffer.
+ * This function:
+ * - Removes **leading and trailing ASCII whitespace**.
+ * - Escapes **single quotes (`'`)** by doubling them (`''`), which helps prevent
+ *   SQL injection when inserting untrusted strings into SQL queries.
  *
- * @param dest Destination buffer to store sanitized string.
- * @param src Source string to sanitize.
- * @param dest_size Size of destination buffer in bytes.
- * @return Pointer to dest on success, NULL if input invalid or buffer too small.
+ * The sanitized result is written into the `dest` buffer. If the buffer is too
+ * small to hold the sanitized string (including escaped quotes and null-terminator),
+ * the function returns `NULL` and does not modify `dest`.
+ *
+ * ### Example:
+ * @code
+ * char buffer[100];
+ * if (sanitize(buffer, "  O'Reilly  ", sizeof(buffer))) {
+ *     printf("Sanitized: %s\n", buffer);  // Output: O''Reilly
+ * } else {
+ *     // Handle error
+ * }
+ * @endcode
+ *
+ * @param[out] dest       Destination buffer to write the sanitized string.
+ * @param[in]  src        Input string to sanitize.
+ * @param[in]  dest_size  Size of the destination buffer in bytes.
+ *
+ * @return Pointer to `dest` on success, or `NULL` on error:
+ *         - if any argument is invalid,
+ *         - if the sanitized string would exceed `dest_size`.
+ *
+ * @note This function operates on ASCII input. It is not Unicode-aware.
+ * @note This is not a substitute for proper parameterized SQL queries.
  */
 char *sanitize(char *dest, const char *src, size_t dest_size) {
         if (!dest || !src || dest_size == 0) return NULL;
