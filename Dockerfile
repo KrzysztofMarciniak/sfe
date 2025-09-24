@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip json-c-dev check-dev doxygen
+RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip json-c-dev check-dev doxygen openssl-dev
 
 WORKDIR /app
 

@@ -49,7 +49,7 @@ int main(void) {
         : return_json(405);
 
     // Check for allocation failure
-    if (resp) {
+    if (!resp) {
         die(500, "Memory allocation failed.");
         return 1;
     }
