@@ -1,4 +1,5 @@
 #include "csrf_key.h"
+
 #include <openssl/rand.h>
 #include <stdio.h>
 #include <stdlib.h>

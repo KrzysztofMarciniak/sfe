@@ -5,15 +5,17 @@
  * Provides a standardized mechanism to output JSON-formatted error responses
  * and terminate program execution in critical error scenarios.
  */
+#include "die.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "die.h"
 
 /**
  * @brief Terminates the program with a structured JSON error response
  *
- * Outputs an HTTP JSON error response with specified status code and error message.
- * Immediately terminates program execution with a non-zero exit status.
+ * Outputs an HTTP JSON error response with specified status code and error
+ * message. Immediately terminates program execution with a non-zero exit
+ * status.
  *
  * @param status HTTP status code to include in the error response
  * @param error Descriptive error message string

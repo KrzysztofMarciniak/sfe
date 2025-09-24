@@ -6,56 +6,49 @@
 #include <check.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "sanitizer.h"
 
-START_TEST(test_str_trim_basic)
-{
+START_TEST(test_str_trim_basic) {
     char input[] = "  hello world  ";
     char *trimmed = str_trim(input);
     ck_assert_str_eq(trimmed, "hello world");
 }
 END_TEST
 
-START_TEST(test_str_trim_all_spaces)
-{
+START_TEST(test_str_trim_all_spaces) {
     char input[] = "     ";
     char *trimmed = str_trim(input);
     ck_assert_str_eq(trimmed, "");
 }
 END_TEST
 
-START_TEST(test_validate_username_valid)
-{
+START_TEST(test_validate_username_valid) {
     ck_assert(validate_username("user_name123"));
 }
 END_TEST
 
-START_TEST(test_validate_username_invalid)
-{
+START_TEST(test_validate_username_invalid) {
     ck_assert(!validate_username("user name!"));
 }
 END_TEST
 
-START_TEST(test_validate_json_valid_object)
-{
+START_TEST(test_validate_json_valid_object) {
     ck_assert(validate_json("   { \"key\": \"value\" }"));
 }
 END_TEST
 
-START_TEST(test_validate_json_valid_array)
-{
+START_TEST(test_validate_json_valid_array) {
     ck_assert(validate_json("\n\t [1, 2, 3]"));
 }
 END_TEST
 
-START_TEST(test_validate_json_invalid)
-{
+START_TEST(test_validate_json_invalid) {
     ck_assert(!validate_json("not json"));
 }
 END_TEST
 
-START_TEST(test_sql_escape_simple)
-{
+START_TEST(test_sql_escape_simple) {
     const char *src = "O'Hara";
     char dest[32];
     bool result = sql_escape(dest, src, sizeof(dest));
@@ -64,29 +57,25 @@ START_TEST(test_sql_escape_simple)
 }
 END_TEST
 
-START_TEST(test_sql_escape_insufficient_buffer)
-{
+START_TEST(test_sql_escape_insufficient_buffer) {
     const char *src = "O'Hara";
-    char dest[5]; // Too small
+    char dest[5];  // Too small
     bool result = sql_escape(dest, src, sizeof(dest));
     ck_assert(!result);
 }
 END_TEST
 
-START_TEST(test_validate_token_valid)
-{
+START_TEST(test_validate_token_valid) {
     ck_assert(validate_token("abc-123_XYZ.ok", 32));
 }
 END_TEST
 
-START_TEST(test_validate_token_invalid_char)
-{
+START_TEST(test_validate_token_invalid_char) {
     ck_assert(!validate_token("abc$123", 32));
 }
 END_TEST
 
-START_TEST(test_validate_token_too_long)
-{
+START_TEST(test_validate_token_too_long) {
     char token[65];
     memset(token, 'a', 64);
     token[64] = '\0';
@@ -94,8 +83,7 @@ START_TEST(test_validate_token_too_long)
 }
 END_TEST
 
-Suite* sanitizer_suite(void)
-{
+Suite *sanitizer_suite(void) {
     Suite *s;
     TCase *tc_core;
 
@@ -120,8 +108,7 @@ Suite* sanitizer_suite(void)
     return s;
 }
 
-int main(void)
-{
+int main(void) {
     int number_failed;
     Suite *s;
     SRunner *sr;

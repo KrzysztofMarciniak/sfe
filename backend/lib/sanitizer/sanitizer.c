@@ -9,19 +9,20 @@
  * @brief Trim leading and trailing whitespace from a string (in place).
  *
  * This function removes whitespace from the beginning and end of the string.
- * Leading whitespace is skipped by incrementing the string pointer, and trailing
- * whitespace is removed by inserting a null terminator at the new end.
+ * Leading whitespace is skipped by incrementing the string pointer, and
+ * trailing whitespace is removed by inserting a null terminator at the new end.
  *
  * @param str Input string to trim. Must be writable.
- * @return Pointer to the trimmed string (possibly shifted from original pointer).
+ * @return Pointer to the trimmed string (possibly shifted from original
+ * pointer).
  */
-char* str_trim(char *str) {
+char *str_trim(char *str) {
     if (!str) return NULL;
 
     // Trim leading whitespace
     while (isspace((unsigned char)*str)) str++;
 
-    if (*str == '\0') // All spaces
+    if (*str == '\0')  // All spaces
         return str;
 
     // Trim trailing whitespace
@@ -55,8 +56,8 @@ bool validate_username(const char *str) {
 /**
  * @brief Perform a basic check for JSON format.
  *
- * Skips leading whitespace and checks whether the first non-whitespace character
- * is '{' (for objects) or '[' (for arrays).
+ * Skips leading whitespace and checks whether the first non-whitespace
+ * character is '{' (for objects) or '[' (for arrays).
  *
  * @param str Null-terminated JSON string.
  * @return true if it appears to be JSON, false otherwise.
@@ -86,7 +87,7 @@ bool sql_escape(char *dest, const char *src, size_t dest_size) {
 
     size_t j = 0;
     for (size_t i = 0; src[i] != '\0'; i++) {
-        if (j + 2 >= dest_size) // room for current char + extra quote + null
+        if (j + 2 >= dest_size)  // room for current char + extra quote + null
             return false;
 
         if (src[i] == '\'') {

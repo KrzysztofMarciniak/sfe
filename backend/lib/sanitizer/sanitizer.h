@@ -3,17 +3,17 @@
  * @brief String sanitization and validation utilities.
  *
  * Provides basic sanitization and validation functions for common use cases
- * such as trimming whitespace, validating usernames or tokens, escaping SQL strings,
- * and checking basic JSON format.
+ * such as trimming whitespace, validating usernames or tokens, escaping SQL
+ * strings, and checking basic JSON format.
  */
 
 #ifndef SANITIZER_H
 #define SANITIZER_H
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,15 +22,15 @@ extern "C" {
 /**
  * @brief Trim leading and trailing whitespace from a string (in place).
  *
- * Modifies the input string to remove leading and trailing whitespace characters
- * (spaces, tabs, newlines, etc.). The operation is performed in place, so no new
- * memory is allocated.
+ * Modifies the input string to remove leading and trailing whitespace
+ * characters (spaces, tabs, newlines, etc.). The operation is performed in
+ * place, so no new memory is allocated.
  *
  * @param str String to trim. Must be null-terminated and writable.
  * @return Pointer to the trimmed string. This may point to a different location
  *         within the original string if leading whitespace is removed.
  */
-char* str_trim(char *str);
+char *str_trim(char *str);
 
 /**
  * @brief Check if a string is a valid username.
@@ -72,8 +72,9 @@ bool sql_escape(char *dest, const char *src, size_t dest_size);
 /**
  * @brief Validate a token string (e.g., API/session token).
  *
- * Checks that the token contains only allowed characters (alphanumeric and optionally
- * a limited set of safe symbols), and that its length does not exceed `max_len`.
+ * Checks that the token contains only allowed characters (alphanumeric and
+ * optionally a limited set of safe symbols), and that its length does not
+ * exceed `max_len`.
  *
  * @param token Null-terminated token string to validate.
  * @param max_len Maximum allowed length (not including null terminator).
@@ -85,4 +86,4 @@ bool validate_token(const char *token, size_t max_len);
 }
 #endif
 
-#endif // SANITIZER_H
+#endif  // SANITIZER_H

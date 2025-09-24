@@ -46,7 +46,8 @@ struct JsonResponse {
      */
     char *msg;
 
-    /** json-c object used to build the JSON payload. Managed by the instance. */
+    /** json-c object used to build the JSON payload. Managed by the instance.
+     */
     json_object *json_obj;
 
     /**
@@ -83,7 +84,8 @@ struct JsonResponse {
 /**
  * @brief Create a new JsonResponse with the specified HTTP status code.
  * @param status HTTP status code to use for the response (e.g., 200, 400).
- * @return Pointer to a newly allocated JsonResponse on success; NULL on failure.
+ * @return Pointer to a newly allocated JsonResponse on success; NULL on
+ * failure.
  *
  * The returned instance has function pointers initialized for set_message,
  * build, and free. The caller is responsible for calling the free method

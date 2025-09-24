@@ -1,15 +1,18 @@
 #include "user_model.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-char* user_to_json(const user_t *user) {
+char *user_to_json(const user_t *user) {
     if (!user) return NULL;
 
     struct json_object *jobj = json_object_new_object();
     if (!jobj) return NULL;
 
-    json_object_object_add(jobj, "username", json_object_new_string(user->username));
-    json_object_object_add(jobj, "password_hash", json_object_new_string(user->password_hash));
+    json_object_object_add(jobj, "username",
+                           json_object_new_string(user->username));
+    json_object_object_add(jobj, "password_hash",
+                           json_object_new_string(user->password_hash));
 
     if (user->id >= 0) {
         json_object_object_add(jobj, "id", json_object_new_int(user->id));
@@ -22,7 +25,7 @@ char* user_to_json(const user_t *user) {
     return result;
 }
 
-user_t* json_to_user(const char *json_str) {
+user_t *json_to_user(const char *json_str) {
     if (!json_str) return NULL;
 
     struct json_object *jobj = json_tokener_parse(json_str);

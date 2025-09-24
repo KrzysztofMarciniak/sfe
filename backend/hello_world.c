@@ -19,8 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lib/json_response/json_response.h"
+
 #include "lib/die/die.h"
+#include "lib/json_response/json_response.h"
 
 /**
  * @brief Entry point for the CGI program.
@@ -45,8 +46,8 @@ int main(void) {
     const char *method = getenv("REQUEST_METHOD");
 
     JsonResponse *resp = method && strcmp(method, "GET") == 0
-        ? return_json(200)
-        : return_json(405);
+                             ? return_json(200)
+                             : return_json(405);
 
     // Check for allocation failure
     if (!resp) {
@@ -59,8 +60,8 @@ int main(void) {
 
     // Set appropriate message
     resp->set_message(resp, method && strcmp(method, "GET") == 0
-        ? "Hello, World"
-        : "Method Not Allowed");
+                                ? "Hello, World"
+                                : "Method Not Allowed");
 
     // Output JSON response
     printf("%s\n", resp->build(resp));

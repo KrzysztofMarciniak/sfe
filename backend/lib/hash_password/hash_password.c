@@ -1,9 +1,10 @@
 #include "hash_password.h"
+
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define SALT_LEN 16
 #define HASH_LEN 32
@@ -12,8 +13,7 @@
  * @brief Convert binary data to a hex string.
  */
 static void bin_to_hex(const unsigned char *in, size_t len, char *out) {
-    for (size_t i = 0; i < len; ++i)
-        sprintf(out + i * 2, "%02x", in[i]);
+    for (size_t i = 0; i < len; ++i) sprintf(out + i * 2, "%02x", in[i]);
     out[len * 2] = '\0';
 }
 
@@ -24,21 +24,19 @@ static int hex_to_bin(const char *hex, unsigned char *out, size_t out_len) {
     size_t hex_len = strlen(hex);
     if (hex_len != out_len * 2) return -1;
     for (size_t i = 0; i < out_len; ++i) {
-        if (sscanf(hex + 2*i, "%2hhx", &out[i]) != 1)
-            return -1;
+        if (sscanf(hex + 2 * i, "%2hhx", &out[i]) != 1) return -1;
     }
     return 0;
 }
 
-char* hash_password(const char *password) {
+char *hash_password(const char *password) {
     if (!password) return NULL;
 
     unsigned char salt[SALT_LEN];
     unsigned char hash[HASH_LEN];
     const int iterations = 100000;
 
-    if (RAND_bytes(salt, sizeof(salt)) != 1)
-        return NULL;
+    if (RAND_bytes(salt, sizeof(salt)) != 1) return NULL;
 
     if (PKCS5_PBKDF2_HMAC(password, strlen(password), salt, sizeof(salt),
                           iterations, EVP_sha256(), HASH_LEN, hash) != 1)
@@ -92,7 +90,8 @@ int verify_password(const char *password, const char *stored_hash) {
     }
 
     if (PKCS5_PBKDF2_HMAC(password, strlen(password), salt, SALT_LEN,
-                          iterations, EVP_sha256(), HASH_LEN, actual_hash) != 1) {
+                          iterations, EVP_sha256(), HASH_LEN,
+                          actual_hash) != 1) {
         free(copy);
         return -1;
     }
@@ -102,8 +101,7 @@ int verify_password(const char *password, const char *stored_hash) {
     // Constant-time comparison
     int result = 1;
     for (int i = 0; i < HASH_LEN; ++i) {
-        if (actual_hash[i] != expected_hash[i])
-            result = 0;
+        if (actual_hash[i] != expected_hash[i]) result = 0;
     }
 
     return result;

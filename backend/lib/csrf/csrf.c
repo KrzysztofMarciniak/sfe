@@ -1,14 +1,15 @@
 #include "csrf.h"
-#include "csrf_key.h"
 
-#include <openssl/rand.h>
-#include <openssl/hmac.h>
 #include <openssl/evp.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "csrf_key.h"
 
 #define CSRF_TOKEN_RANDOM_SIZE 32    // Random bytes length
 #define CSRF_TOKEN_HMAC_SIZE 32      // SHA-256 HMAC length
@@ -19,12 +20,11 @@
 // Token layout: [ random(32) | timestamp(8) | hmac(32) ]
 // Total bytes = 72 -> hex = 72 * 2 = 144 chars + null terminator
 
-#define CSRF_TOKEN_RAW_SIZE (CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE + CSRF_TOKEN_HMAC_SIZE)
+#define CSRF_TOKEN_RAW_SIZE \
+    (CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE + CSRF_TOKEN_HMAC_SIZE)
 #define CSRF_TOKEN_HEX_SIZE (CSRF_TOKEN_RAW_SIZE * 2)
 
-static char hex_char(unsigned char c) {
-    return "0123456789abcdef"[c & 0xf];
-}
+static char hex_char(unsigned char c) { return "0123456789abcdef"[c & 0xf]; }
 
 static void to_hex(const unsigned char *src, size_t len, char *dest) {
     for (size_t i = 0; i < len; ++i) {
@@ -37,7 +37,7 @@ static void to_hex(const unsigned char *src, size_t len, char *dest) {
 static bool from_hex(const char *src, unsigned char *dest, size_t len) {
     for (size_t i = 0; i < len; i++) {
         unsigned int byte;
-        if (sscanf(src + i*2, "%2x", &byte) != 1) {
+        if (sscanf(src + i * 2, "%2x", &byte) != 1) {
             return false;
         }
         dest[i] = (unsigned char)byte;
@@ -53,10 +53,10 @@ static int secure_memcmp(const void *a, const void *b, size_t len) {
     for (size_t i = 0; i < len; i++) {
         diff |= p1[i] ^ p2[i];
     }
-    return diff; // 0 if equal, nonzero otherwise
+    return diff;  // 0 if equal, nonzero otherwise
 }
 
-char* csrf_generate_token(void) {
+char *csrf_generate_token(void) {
     unsigned char rand_bytes[CSRF_TOKEN_RANDOM_SIZE];
     if (!RAND_bytes(rand_bytes, sizeof(rand_bytes))) {
         return NULL;
@@ -80,13 +80,16 @@ char* csrf_generate_token(void) {
     }
 
     // Prepare data to HMAC: random_bytes || timestamp_bytes
-    unsigned char data_to_mac[CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE];
+    unsigned char
+        data_to_mac[CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE];
     memcpy(data_to_mac, rand_bytes, CSRF_TOKEN_RANDOM_SIZE);
-    memcpy(data_to_mac + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes, CSRF_TOKEN_TIMESTAMP_SIZE);
+    memcpy(data_to_mac + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes,
+           CSRF_TOKEN_TIMESTAMP_SIZE);
 
     unsigned char hmac[CSRF_TOKEN_HMAC_SIZE];
     unsigned int hmac_len = 0;
-    if (!HMAC(EVP_sha256(), key, (int)key_len, data_to_mac, sizeof(data_to_mac), hmac, &hmac_len)) {
+    if (!HMAC(EVP_sha256(), key, (int)key_len, data_to_mac, sizeof(data_to_mac),
+              hmac, &hmac_len)) {
         return NULL;
     }
     if (hmac_len != CSRF_TOKEN_HMAC_SIZE) {
@@ -96,8 +99,10 @@ char* csrf_generate_token(void) {
     // Build final raw token: random + timestamp + hmac
     unsigned char token_raw[CSRF_TOKEN_RAW_SIZE];
     memcpy(token_raw, rand_bytes, CSRF_TOKEN_RANDOM_SIZE);
-    memcpy(token_raw + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes, CSRF_TOKEN_TIMESTAMP_SIZE);
-    memcpy(token_raw + CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE, hmac, CSRF_TOKEN_HMAC_SIZE);
+    memcpy(token_raw + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes,
+           CSRF_TOKEN_TIMESTAMP_SIZE);
+    memcpy(token_raw + CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE, hmac,
+           CSRF_TOKEN_HMAC_SIZE);
 
     // Allocate hex string (2 chars per byte + null)
     char *token_hex = malloc(CSRF_TOKEN_HEX_SIZE + 1);
@@ -121,7 +126,8 @@ bool csrf_validate_token(const char *token) {
     // Extract components
     unsigned char *rand_bytes = token_raw;
     unsigned char *timestamp_bytes = token_raw + CSRF_TOKEN_RANDOM_SIZE;
-    unsigned char *token_hmac = token_raw + CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE;
+    unsigned char *token_hmac =
+        token_raw + CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE;
 
     // Parse timestamp (big-endian)
     uint64_t token_timestamp = 0;
@@ -131,7 +137,8 @@ bool csrf_validate_token(const char *token) {
 
     // Check expiration
     uint64_t now = (uint64_t)time(NULL);
-    if (token_timestamp > now || now - token_timestamp > CSRF_TOKEN_EXPIRE_SECONDS) {
+    if (token_timestamp > now ||
+        now - token_timestamp > CSRF_TOKEN_EXPIRE_SECONDS) {
         // Token expired or timestamp invalid
         return false;
     }
@@ -144,13 +151,16 @@ bool csrf_validate_token(const char *token) {
     }
 
     // Recalculate HMAC
-    unsigned char data_to_mac[CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE];
+    unsigned char
+        data_to_mac[CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE];
     memcpy(data_to_mac, rand_bytes, CSRF_TOKEN_RANDOM_SIZE);
-    memcpy(data_to_mac + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes, CSRF_TOKEN_TIMESTAMP_SIZE);
+    memcpy(data_to_mac + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes,
+           CSRF_TOKEN_TIMESTAMP_SIZE);
 
     unsigned char expected_hmac[CSRF_TOKEN_HMAC_SIZE];
     unsigned int expected_hmac_len = 0;
-    if (!HMAC(EVP_sha256(), key, (int)key_len, data_to_mac, sizeof(data_to_mac), expected_hmac, &expected_hmac_len)) {
+    if (!HMAC(EVP_sha256(), key, (int)key_len, data_to_mac, sizeof(data_to_mac),
+              expected_hmac, &expected_hmac_len)) {
         return false;
     }
     if (expected_hmac_len != CSRF_TOKEN_HMAC_SIZE) {

@@ -4,7 +4,7 @@ API_URL="http://localhost:8080/api/register.cgi"
 
 read -r -d '' PAYLOAD << EOF
 {
-  "username": "testuser",
+  "username": "testuser1",
   "password": "SuperSecret123"
 }
 EOF

@@ -4,6 +4,6 @@
 #include <stdbool.h>
 
 char* csrf_generate_token(void);
-bool csrf_validate_token(const char *token);
+bool csrf_validate_token(const char* token);
 
-#endif // CSRF_H
+#endif  // CSRF_H

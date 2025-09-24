@@ -26,7 +26,7 @@ extern "C" {
  * @return A newly allocated string containing the password hash.
  *         Must be freed by the caller. Returns NULL on failure.
  */
-char* hash_password(const char *password);
+char *hash_password(const char *password);
 
 /**
  * @brief Verify a password against a stored PBKDF2-HMAC-SHA256 hash.
@@ -44,4 +44,4 @@ int verify_password(const char *password, const char *stored_hash);
 }
 #endif
 
-#endif // HASH_PASSWORD_H
+#endif  // HASH_PASSWORD_H
