@@ -4,6 +4,7 @@
  *
  * Accepts POST requests with JSON payload:
  * {
+ *   "csrf":"...",
  *   "username": "alice",
  *   "password": "hunter2"
  * }
@@ -20,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lib/csrf/csrf.h"// Assuming csrf_validate_token is declared here
 #include "lib/dal/user/user.h"
 #include "lib/die/die.h"
 #include "lib/hash_password/hash_password.h"
@@ -30,7 +32,13 @@
 #define DB_PATH "/data/sfe.db"
 #define DEBUG 0
 
-// Read entire stdin body (POST data)
+/**
+ * @brief Reads the entire POST data from stdin based on CONTENT_LENGTH.
+ *
+ * @return Pointer to allocated null-terminated buffer containing POST data,
+ *         or NULL on failure.
+ *         Caller is responsible for freeing the returned buffer.
+ */
 static char *read_post_data(void) {
         const char *len_str = getenv("CONTENT_LENGTH");
         if (!len_str) return NULL;
@@ -102,44 +110,70 @@ int main(void) {
                 return 0;
         }
 
-        struct json_object *j_username = NULL, *j_password = NULL;
-        if (!json_object_object_get_ex(jobj, "username", &j_username) ||
+        struct json_object *j_csrf     = NULL;
+        struct json_object *j_username = NULL;
+        struct json_object *j_password = NULL;
+
+        // Proper json_object_object_get_ex calls to extract all fields
+        if (!json_object_object_get_ex(jobj, "csrf", &j_csrf) ||
+            !json_object_object_get_ex(jobj, "username", &j_username) ||
             !json_object_object_get_ex(jobj, "password", &j_password)) {
                 json_object_put(jobj);
-                response(400, "Missing username or password.");
+                response(400, "Missing csrf, username, or password field.");
                 return 0;
         }
 
+        // Extract strings from JSON objects
+        const char *csrf_token   = json_object_get_string(j_csrf);
         const char *username_raw = json_object_get_string(j_username);
         const char *password     = json_object_get_string(j_password);
 
-        if (!username_raw) {
+        if (!csrf_token) {
                 json_object_put(jobj);
+                response(400, "CSRF token not present or invalid.");
+                return 0;
+        }
+
+        // Sanitize CSRF token
+        char csrf_token_sanitized[256];
+        if (!sanitize(csrf_token_sanitized, csrf_token, sizeof(csrf_token_sanitized))) {
+                json_object_put(jobj);
+                response(400, "Failed to sanitize CSRF token.");
+                return 0;
+        }
+
+        // Validate CSRF token
+        bool valid = csrf_validate_token(csrf_token_sanitized);
+        json_object_put(jobj);// free JSON object as we no longer need it
+
+        if (!valid) {
+                response(400, "Invalid CSRF token.");
+                return 0;
+        }
+
+        if (!username_raw) {
                 response(400, "Username must be a string.");
                 return 0;
         }
 
         if (!password || strlen(password) < 6) {
-                json_object_put(jobj);
                 response(400, "Password must be at least 6 characters.");
                 return 0;
         }
 
+        // Validate username format
         const char *validation_err = validate_username(username_raw);
         if (validation_err) {
-                json_object_put(jobj);
                 response(400, validation_err);
                 return 0;
         }
 
+        // Sanitize username
         char username_sanitized[64];// safely large buffer
         if (!sanitize(username_sanitized, username_raw, sizeof(username_sanitized))) {
-                json_object_put(jobj);
                 response(400, "Failed to sanitize username.");
                 return 0;
         }
-
-        json_object_put(jobj);// free JSON object
 
         // Hash password
         char *password_hash = hash_password(password);

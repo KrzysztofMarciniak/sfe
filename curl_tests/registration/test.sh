@@ -1,6 +1,13 @@
 #!/bin/bash
+set -euo pipefail
 
 API_URL="http://localhost:8080/api/register.cgi"
+CSRF_URL="http://localhost:8080/api/csrf.cgi"
+
+# Fetch CSRF token from endpoint
+get_csrf_token() {
+  curl --silent "$CSRF_URL" | jq -r '.message'
+}
 
 send_request() {
   local username="$1"
@@ -8,18 +15,22 @@ send_request() {
   local expected_code="$3"
   local expected_msg="$4"
 
-  PAYLOAD=$(printf '{"username": "%s", "password": "%s"}' "$username" "$password")
+  local csrf_token
+  csrf_token=$(get_csrf_token)
+
+  PAYLOAD=$(printf '{"csrf": "%s", "username": "%s", "password": "%s"}' "$csrf_token" "$username" "$password")
 
   echo -n "Test: username='$username', password='$password' ... "
 
   local temp_file="/tmp/response_$$_$RANDOM.json"
 
-  # Capture body to file, code to variable
+  local response_code
   response_code=$(curl --silent --show-error --output "$temp_file" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
-    "$API_URL" --write-out "%{http_code}" 2>/dev/null)
+    "$API_URL" --write-out "%{http_code}")
 
+  local msg
   msg=$(jq -r '.message // "No message field"' "$temp_file" 2>/dev/null || echo "Invalid JSON response")
 
   rm -f "$temp_file"
@@ -49,3 +60,4 @@ send_request "validuser" "12345" 400 "Password must be at least 6 characters"
 send_request "testuser1" "AnotherPass123" 400 "Username already exists"
 
 echo "Tests completed."
+
