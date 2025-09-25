@@ -8,12 +8,10 @@ RUN apk add --no-cache \
     musl-dev \
     ninja \
     tcc-libs-static \
-    unzip \
     json-c-dev \
     doxygen \
     openssl-dev \
     git \
-    curl \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app
