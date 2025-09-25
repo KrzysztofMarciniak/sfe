@@ -5,10 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-int user_insert(sqlite3 *db, const user_t *user, char *errbuf, size_t errbuf_len) {
-        if (!db || !user || !user->username || !user->password_hash) {
-                snprintf(errbuf, errbuf_len, "Invalid input parameters.");
-                return -1;
+const char *user_insert(sqlite3 *db, const user_t *user, user_t **out_user) {
+        if (!db || !user || !user->username || !user->password_hash || !out_user) {
+                return "Invalid input parameters.";
         }
 
         const char *sql    = "INSERT INTO users (username, password_hash) VALUES (?, ?);";
@@ -16,58 +15,117 @@ int user_insert(sqlite3 *db, const user_t *user, char *errbuf, size_t errbuf_len
 
         int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
         if (rc != SQLITE_OK) {
-                snprintf(errbuf, errbuf_len, "Failed to prepare statement: %s", sqlite3_errmsg(db));
-                return -2;
+                return sqlite3_errmsg(db);
         }
 
-        sqlite3_bind_text(stmt, 1, user->username, -1, SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, user->password_hash, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 1, user->username, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 2, user->password_hash, -1, SQLITE_TRANSIENT);
 
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
-                snprintf(errbuf, errbuf_len, "Failed to execute statement: %s", sqlite3_errmsg(db));
                 sqlite3_finalize(stmt);
-                return -3;
+                return sqlite3_errmsg(db);
         }
 
         sqlite3_finalize(stmt);
-        return 0;
+
+        int new_id = (int)sqlite3_last_insert_rowid(db);
+
+        return user_fetch_by_id(db, new_id, out_user);
 }
 
-user_t *user_fetch_by_username(sqlite3 *db, const char *username) {
-        if (!db || !username) return NULL;
+const char *user_fetch_by_id(sqlite3 *db, int id, user_t **out_user) {
+        if (!db || !out_user) return "Invalid arguments.";
 
-        const char *sql =
-            "SELECT id, username, password_hash FROM users WHERE username = ? "
-            "LIMIT 1;";
+        *out_user = NULL;
+
+        const char *sql    = "SELECT id, username, password_hash FROM users WHERE id = ? LIMIT 1;";
         sqlite3_stmt *stmt = NULL;
 
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return NULL;
+        int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+        if (rc != SQLITE_OK) {
+                return sqlite3_errmsg(db);
+        }
 
-        sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 1, id);
 
-        user_t *user = NULL;
-
-        if (sqlite3_step(stmt) == SQLITE_ROW) {
-                user = malloc(sizeof(user_t));
+        rc = sqlite3_step(stmt);
+        if (rc == SQLITE_ROW) {
+                user_t *user = malloc(sizeof(user_t));
                 if (!user) {
                         sqlite3_finalize(stmt);
-                        return NULL;
+                        return "Out of memory.";
                 }
 
                 user->id           = sqlite3_column_int(stmt, 0);
                 const char *uname  = (const char *)sqlite3_column_text(stmt, 1);
                 const char *pwhash = (const char *)sqlite3_column_text(stmt, 2);
 
-                user->username      = strdup(uname);
-                user->password_hash = strdup(pwhash);
+                user->username      = uname ? strdup(uname) : NULL;
+                user->password_hash = pwhash ? strdup(pwhash) : NULL;
 
                 if (!user->username || !user->password_hash) {
                         user_free(user);
-                        user = NULL;
+                        sqlite3_finalize(stmt);
+                        return "Out of memory.";
                 }
+
+                *out_user = user;
+                sqlite3_finalize(stmt);
+                return NULL;
         }
 
         sqlite3_finalize(stmt);
-        return user;
+        return "User not found.";
+}
+
+const char *user_fetch_by_username(sqlite3 *db, const char *username, user_t **out_user) {
+        if (!db || !username || !out_user) return "Invalid arguments.";
+
+        *out_user = NULL;
+
+        const char *sql =
+            "SELECT id, username, password_hash FROM users WHERE username = ? COLLATE NOCASE LIMIT "
+            "1;";
+        sqlite3_stmt *stmt = NULL;
+
+        int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+        if (rc != SQLITE_OK) {
+                return sqlite3_errmsg(db);
+        }
+
+        rc = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_TRANSIENT);
+        if (rc != SQLITE_OK) {
+                sqlite3_finalize(stmt);
+                return sqlite3_errmsg(db);
+        }
+
+        rc = sqlite3_step(stmt);
+        if (rc == SQLITE_ROW) {
+                user_t *user = malloc(sizeof(user_t));
+                if (!user) {
+                        sqlite3_finalize(stmt);
+                        return "Out of memory.";
+                }
+
+                user->id           = sqlite3_column_int(stmt, 0);
+                const char *uname  = (const char *)sqlite3_column_text(stmt, 1);
+                const char *pwhash = (const char *)sqlite3_column_text(stmt, 2);
+
+                user->username      = uname ? strdup(uname) : NULL;
+                user->password_hash = pwhash ? strdup(pwhash) : NULL;
+
+                if (!user->username || !user->password_hash) {
+                        user_free(user);
+                        sqlite3_finalize(stmt);
+                        return "Out of memory.";
+                }
+
+                *out_user = user;
+                sqlite3_finalize(stmt);
+                return NULL;
+        }
+
+        sqlite3_finalize(stmt);
+        return "User not found.";
 }

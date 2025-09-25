@@ -19,19 +19,24 @@ extern "C" {
  *
  * @param db SQLite database connection.
  * @param user Pointer to user_t with username and password_hash filled.
- * @return 0 on success, non-zero on failure.
+ * @param out_user Pointer to user_t* where the inserted user (with generated ID)
+ *                 will be stored on success (caller must free).
+ * @return NULL on success, error string on failure.
  */
-int user_insert(sqlite3 *db, const user_t *user, char *errbuf, size_t errbuf_len);
+const char *user_insert(sqlite3 *db, const user_t *user, user_t **out_user);
 
 /**
- * @brief Fetch a user from the database by username.
+ * @brief Fetch a user from the database by ID.
  *
  * @param db SQLite database connection.
- * @param username Username to search for.
- * @return Allocated user_t struct (caller must free), or NULL on not found or
- * error.
+ * @param id ID to search for.
+ * @param out_user Pointer to user_t* where the fetched user will be stored on
+ *                 success (caller must free), or NULL on not found.
+ * @return NULL on success, error string on failure.
  */
-user_t *user_fetch_by_username(sqlite3 *db, const char *username);
+const char *user_fetch_by_id(sqlite3 *db, int id, user_t **out_user);
+
+const char *user_fetch_by_username(sqlite3 *db, const char *username, user_t **out_user);
 
 #ifdef __cplusplus
 }

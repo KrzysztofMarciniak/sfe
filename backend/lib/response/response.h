@@ -1,30 +1,17 @@
-/**
- * @file response.h
- * @brief Simple JSON HTTP response helper for CGI programs.
- *
- * Provides a single function to send a JSON response with an HTTP status code
- * and optional message by printing HTTP headers and JSON body to stdout.
- */
+// response.h
 
 #ifndef RESPONSE_H
 #define RESPONSE_H
 
-#ifdef __cplusplus
-extern "C" {
+#include <stdbool.h>
+
+// Initialize response with a status code (e.g., 200)
+void response_init(unsigned int http_code);
+
+// Append a debug or error message
+bool response_append(const char *msg);
+
+// Send the response once (prints headers and full JSON)
+void response_send(void);
+
 #endif
-
-/**
- * @brief Sends a JSON response in a CGI environment.
- *
- * Prints the HTTP status header, Content-Type, and JSON body.
- *
- * @param http_code HTTP status code (e.g., 200, 404).
- * @param message Optional null-terminated message string to include.
- */
-void response(unsigned int http_code, const char *message);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* RESPONSE_H */
