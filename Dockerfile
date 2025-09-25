@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip json-c-dev check-dev doxygen openssl-dev 
+RUN apk add --no-cache lighttpd tcc sqlite sqlite-dev musl-dev ninja tcc-libs-static curl unzip json-c-dev check-dev doxygen openssl-dev git
 
 WORKDIR /app
 
@@ -19,12 +19,23 @@ RUN mkdir -p . \
 
 RUN mkdir -p /tmp/lighttpd/deflate && chmod 1777 /tmp/lighttpd/deflate
 
+RUN ln -s /usr/bin/tcc /usr/bin/cc
+
+# Clone the repository
+RUN git clone https://github.com/KrzysztofMarciniak/jwtc.git /app/jwtc
+
+# Change to the repository directory and run install script
+WORKDIR /app/jwtc
+RUN chmod +x ./install.sh && ./install.sh
+
 # Build backend with Ninja
 WORKDIR /app/backend
 COPY backend/generate_build.sh /app/backend/generate_build.sh
 RUN chmod +x /app/backend/generate_build.sh \
     && ./generate_build.sh \
     && ninja -C .
+
+COPY .secrets .secrets
 
 # Copy lighttpd config
 WORKDIR /app/web
