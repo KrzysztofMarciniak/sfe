@@ -2,9 +2,10 @@
 #define JWT_H
 
 #include <json-c/json.h>
+#include <stdbool.h>
 
-char *issue_jwt(const char *id);
+char *issue_jwt(const char *id, const char **errmsg);
 
-char *val_jwt(const char *token, json_object **claims_out);
+bool val_jwt(const char *token, struct json_object **claims_out, const char **errmsg);
 
-#endif // JWT_H
+#endif// JWT_H

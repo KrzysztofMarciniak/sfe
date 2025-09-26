@@ -1,7 +1,7 @@
-#ifndef SECRETS_H_
-#define SECRETS_H_
+#ifndef SECRETS_H
+#define SECRETS_H
 
-const char *get_csrf_secret(void);
-const char *get_jwt_secret(void);
+const char *get_csrf_secret(const char **errmsg);
+const char *get_jwt_secret(const char **errmsg);
 
-#endif// SECRETS_H_
+#endif// SECRETS_H

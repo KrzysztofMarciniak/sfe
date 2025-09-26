@@ -2,6 +2,7 @@
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <stdarg.h>// Added for va_list
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,11 +36,16 @@ static void err_append(const char **err, const char *fmt, ...) {
                 va_end(args);
                 return;
         }
-        *err = new_err;
 
         // Append formatted string at the end
-        vsnprintf((char *)(*err) + old_len, new_len - old_len, fmt, args);
+        vsnprintf(new_err + old_len, new_len - old_len, fmt, args);
         va_end(args);
+
+        // Free the old pointer and assign the new one to prevent memory leaks
+        if (*err) {
+                free((void *)*err);
+        }
+        *err = new_err;
 }
 
 static void bin_to_hex(const unsigned char *in, size_t len, char *out) {
@@ -86,8 +92,11 @@ char *hash_password(const char *password, const char **err) {
         bin_to_hex(salt, SALT_LEN, salt_hex);
         bin_to_hex(hash, HASH_LEN, hash_hex);
 
-        size_t result_len = strlen(salt_hex) + 1 + 10 + 1 + strlen(hash_hex) + 1;
-        char *result      = malloc(result_len);
+        // Dynamically calculate the size of the result string
+        size_t iter_str_len = snprintf(NULL, 0, "%d", iterations);
+        size_t result_len   = strlen(salt_hex) + 1 + iter_str_len + 1 + strlen(hash_hex) + 1;
+
+        char *result = malloc(result_len);
         if (!result) {
                 if (err) *err = "Out of memory.";
                 return NULL;
@@ -99,8 +108,9 @@ char *hash_password(const char *password, const char **err) {
 
 int verify_password(const char *password, const char *stored_hash, const char **err) {
         if (err) *err = NULL;
+        const char *debug_err = NULL;// Use a temporary buffer for debug messages
 
-#define APPEND_ERR(...) err_append(err, __VA_ARGS__)
+#define APPEND_ERR(...) err_append(&debug_err, __VA_ARGS__)
 
         APPEND_ERR("[DEBUG] Starting verify_password\n");
         APPEND_ERR("[DEBUG] Input password: '%s'\n", password ? password : "NULL");
@@ -108,13 +118,23 @@ int verify_password(const char *password, const char *stored_hash, const char **
 
         if (!password || !stored_hash) {
                 APPEND_ERR("[ERROR] Password or stored hash is NULL.\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
 
         char *copy = strdup(stored_hash);
         if (!copy) {
                 APPEND_ERR("[ERROR] Out of memory.\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
 
         char *salt_hex = copy;
@@ -122,7 +142,12 @@ int verify_password(const char *password, const char *stored_hash, const char **
         if (!iter_str) {
                 free(copy);
                 APPEND_ERR("[ERROR] Invalid hash format (no iteration delimiter).\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
         *iter_str++ = '\0';
 
@@ -130,7 +155,12 @@ int verify_password(const char *password, const char *stored_hash, const char **
         if (!hash_hex) {
                 free(copy);
                 APPEND_ERR("[ERROR] Invalid hash format (no hash delimiter).\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
         *hash_hex++ = '\0';
 
@@ -142,7 +172,12 @@ int verify_password(const char *password, const char *stored_hash, const char **
         if (iterations <= 0) {
                 free(copy);
                 APPEND_ERR("[ERROR] Invalid iteration count: %d\n", iterations);
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
         APPEND_ERR("[DEBUG] Iterations count: %d\n", iterations);
 
@@ -153,12 +188,22 @@ int verify_password(const char *password, const char *stored_hash, const char **
         if (hex_to_bin(salt_hex, salt, SALT_LEN) != 0) {
                 free(copy);
                 APPEND_ERR("[ERROR] Failed to decode salt hex string.\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
         if (hex_to_bin(hash_hex, expected_hash, HASH_LEN) != 0) {
                 free(copy);
                 APPEND_ERR("[ERROR] Failed to decode expected hash hex string.\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
 
         APPEND_ERR("[DEBUG] Salt (bin): ");
@@ -177,7 +222,12 @@ int verify_password(const char *password, const char *stored_hash, const char **
                               HASH_LEN, actual_hash) != 1) {
                 free(copy);
                 APPEND_ERR("[ERROR] Password hashing failed during verification.\n");
-                return -1;
+                int ret = -1;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
 
         APPEND_ERR("[DEBUG] Actual hash (bin): ");
@@ -200,13 +250,23 @@ int verify_password(const char *password, const char *stored_hash, const char **
                 bin_to_hex(expected_hash, HASH_LEN, expected_hash_hex);
                 bin_to_hex(actual_hash, HASH_LEN, actual_hash_hex);
 
-                APPEND_ERR("Password mismatch!\nExpected hash: %s\nActual   hash: %s\n",
+                APPEND_ERR("Password mismatch!\nExpected hash: %s\nActual hash: %s\n",
                            expected_hash_hex, actual_hash_hex);
-                return 0;
+                int ret = 0;
+                if (err)
+                        *err = debug_err;
+                else
+                        free((void *)debug_err);
+                return ret;
         }
 
         APPEND_ERR("[DEBUG] Password verification succeeded.\n");
-        return 1;
+        int ret = 1;
+        if (err)
+                *err = debug_err;
+        else
+                free((void *)debug_err);
+        return ret;
 
 #undef APPEND_ERR
 }
