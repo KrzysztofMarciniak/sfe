@@ -95,7 +95,7 @@ COPY --from=frontend /app/web/ /app/web/
 RUN mkdir -p /tmp/lighttpd/deflate && chmod 1777 /tmp/lighttpd/deflate
 
 # Copy configuration and entrypoint scripts.
-COPY .secrets .secrets
+COPY .secrets /app/backend/.secrets
 COPY web/lighttpd.conf /app/web/lighttpd.conf
 WORKDIR /app
 COPY entrypoint.sh backend/doxygen_entrypoint.sh backend/sqlite_entrypoint.sh ./
