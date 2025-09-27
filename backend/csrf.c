@@ -1,6 +1,7 @@
 #include "lib/csrf/csrf.h"
 
 #include <json-c/json.h>
+#include <sanitizec.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +93,28 @@ int main(void) {
                         return 0;
                 }
 
-                bool valid = csrf_validate_token(token, &errmsg);
+                char* error_message = NULL;
+                char* san_token     = sanitizec_apply(
+                    token, SANITIZEC_RULE_ALPHANUMERIC_ONLY, &error_message);
+
+                if (!san_token) {
+                        response_init(&resp, 500);
+#if DEBUG
+                        response_append(&resp, error_message);
+
+#else
+                        response_append(&resp, "Failed to sanitize token.");
+#endif
+                        if (error_message) {
+                                free(error_message);
+                        }
+                        response_send(&resp);
+                        json_object_put(jobj);
+                        return 0;
+                }
+
+                bool valid = csrf_validate_token(san_token, &errmsg);
+                free(san_token);
                 json_object_put(jobj);
 
                 if (valid) {
