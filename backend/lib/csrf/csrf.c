@@ -1,8 +1,10 @@
 #include "csrf.h"
 
+#include <ctype.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
+#include <sanitizec.h>// Included for sanitizec_apply
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -10,6 +12,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "/app/backend/lib/memcmp/memcmp.h"
 #include "/app/backend/lib/secrets/secrets.h"
 
 #define CSRF_TOKEN_RANDOM_SIZE 32
@@ -47,16 +50,6 @@ static bool from_hex(const char* src, unsigned char* dest, size_t len,
                 dest[i] = (unsigned char)byte;
         }
         return true;
-}
-
-static int secure_memcmp(const void* a, const void* b, size_t len) {
-        const unsigned char* p1 = (const unsigned char*)a;
-        const unsigned char* p2 = (const unsigned char*)b;
-        unsigned char diff      = 0;
-        for (size_t i = 0; i < len; ++i) {
-                diff |= p1[i] ^ p2[i];
-        }
-        return diff;
 }
 
 char* csrf_generate_token(const char** errmsg) {
@@ -122,28 +115,54 @@ char* csrf_generate_token(const char** errmsg) {
         return token_hex;
 }
 
-bool csrf_validate_token(const char* token, const char** errmsg) {
+bool csrf_validate_token(const char* token_raw, const char** errmsg) {
         if (errmsg) *errmsg = NULL;
 
-        if (!token) {
+        if (!token_raw) {
                 if (errmsg) *errmsg = "Token is null.";
                 return false;
         }
-        if (strlen(token) != CSRF_TOKEN_HEX_SIZE) {
+
+        char* token_sanitized = NULL;
+        char* san_err         = NULL;
+
+        // 1. Sanitization: Ensure the token contains only hexadecimal
+        // characters.
+        token_sanitized =
+            sanitizec_apply(token_raw, SANITIZEC_RULE_HEX_ONLY, &san_err);
+
+        if (!token_sanitized) {
+                if (errmsg)
+                        *errmsg =
+                            san_err ? san_err
+                                    : "CSRF token sanitization failed (non-hex "
+                                      "characters found or internal error).";
+                return false;
+        }
+
+        // 2. Length check and conversion
+        if (strlen(token_sanitized) != CSRF_TOKEN_HEX_SIZE) {
                 if (errmsg) *errmsg = "Token length mismatch.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
 
-        unsigned char token_raw[CSRF_TOKEN_RAW_SIZE];
-        if (!from_hex(token, token_raw, CSRF_TOKEN_RAW_SIZE, errmsg)) {
-                return false;
+        unsigned char token_raw_bytes[CSRF_TOKEN_RAW_SIZE];
+        // Use the sanitized token for hex decoding
+        if (!from_hex(token_sanitized, token_raw_bytes, CSRF_TOKEN_RAW_SIZE,
+                      errmsg)) {
+                free(token_sanitized);// Cleanup
+                return false;         // errmsg set by from_hex
         }
 
-        unsigned char* rand_bytes      = token_raw;
-        unsigned char* timestamp_bytes = token_raw + CSRF_TOKEN_RANDOM_SIZE;
-        unsigned char* token_hmac =
-            token_raw + CSRF_TOKEN_RANDOM_SIZE + CSRF_TOKEN_TIMESTAMP_SIZE;
+        // 3. Extract parts
+        unsigned char* rand_bytes = token_raw_bytes;
+        unsigned char* timestamp_bytes =
+            token_raw_bytes + CSRF_TOKEN_RANDOM_SIZE;
+        unsigned char* token_hmac = token_raw_bytes + CSRF_TOKEN_RANDOM_SIZE +
+                                    CSRF_TOKEN_TIMESTAMP_SIZE;
 
+        // 4. Time validation
         uint64_t token_ts = 0;
         for (size_t i = 0; i < CSRF_TOKEN_TIMESTAMP_SIZE; ++i) {
                 token_ts = (token_ts << 8) | (uint64_t)timestamp_bytes[i];
@@ -152,20 +171,25 @@ bool csrf_validate_token(const char* token, const char** errmsg) {
         uint64_t now = (uint64_t)time(NULL);
         if (token_ts > now) {
                 if (errmsg) *errmsg = "Token timestamp is in the future.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
         if (now - token_ts > CSRF_TOKEN_EXPIRE_SECONDS) {
                 if (errmsg) *errmsg = "Token has expired.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
 
+        // 5. HMAC computation setup
         const char* secret = get_csrf_secret(errmsg);
         if (!secret) {
+                free(token_sanitized);// Cleanup
                 return false;
         }
         size_t key_len = strlen(secret);
         if (key_len == 0) {
                 if (errmsg) *errmsg = "CSRF secret is empty.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
 
@@ -175,24 +199,30 @@ bool csrf_validate_token(const char* token, const char** errmsg) {
         memcpy(data_to_mac + CSRF_TOKEN_RANDOM_SIZE, timestamp_bytes,
                CSRF_TOKEN_TIMESTAMP_SIZE);
 
+        // 6. HMAC recomputation
         unsigned char expected_hmac[CSRF_TOKEN_HMAC_SIZE];
         unsigned int expected_hmac_len = 0;
         if (!HMAC(EVP_sha256(), (const unsigned char*)secret, (int)key_len,
                   data_to_mac, sizeof(data_to_mac), expected_hmac,
                   &expected_hmac_len)) {
                 if (errmsg) *errmsg = "HMAC recomputation failed.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
         if (expected_hmac_len != CSRF_TOKEN_HMAC_SIZE) {
                 if (errmsg) *errmsg = "Recomputed HMAC length mismatch.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
 
-        if (secure_memcmp(token_hmac, expected_hmac, CSRF_TOKEN_HMAC_SIZE) !=
-            0) {
+        // 7. Secure comparison
+        if (memcmp(token_hmac, expected_hmac, CSRF_TOKEN_HMAC_SIZE) != 0) {
                 if (errmsg) *errmsg = "HMACs do not match.";
+                free(token_sanitized);// Cleanup
                 return false;
         }
 
+        // Success path: cleanup before returning true
+        free(token_sanitized);
         return true;
 }

@@ -74,6 +74,9 @@ RUN apk add --no-cache \
     lighttpd \
     tcc-libs-static \
     sqlite \
+    sqlite-libs \
+    json-c \
+    doxygen \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app
@@ -81,8 +84,9 @@ WORKDIR /app
 # Copy the backend binary from the 'compiler' stage.
 COPY --from=compiler /app/backend /app/backend
 
-# Copy the compiled jwtc library.
-COPY --from=compiler /app/jwtc/libjwtc.so /usr/lib/
+# Copy the compiled jwtc & libsanitizec library.
+COPY --from=compiler /usr/local/lib/libjwtc.so /usr/local/lib/
+COPY --from=compiler /usr/local/lib/libsanitizec.so /usr/local/lib/
 
 # Copy the frontend assets from the 'frontend' stage.
 COPY --from=frontend /app/web/ /app/web/

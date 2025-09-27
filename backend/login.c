@@ -5,6 +5,7 @@
 
 #include <ctype.h>
 #include <json-c/json.h>
+#include <sanitizec.h>
 #include <sqlite3.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -19,45 +20,55 @@
 #include "lib/models/user_model/user_model.h"
 #include "lib/read_post_data/read_post_data.h"
 #include "lib/response/response.h"
-#include "lib/sanitizer/sanitizer.h"
 
 #define DB_PATH "/data/sfe.db"
 #define DEBUG 1
 
 int main(void) {
-        const char* method = getenv("REQUEST_METHOD");
+        const char* method         = getenv("REQUEST_METHOD");
+        char* error_message        = NULL;
+        char* csrf_token_sanitized = NULL;
+        char* username_sanitized   = NULL;
+        sqlite3* db                = NULL;
+        struct json_object* jobj   = NULL;
+        char* body                 = NULL;
 
 #if DEBUG
-        response_init(400);
-        response_append(method ? method : "REQUEST_METHOD is NULL");
+        response_t debug_resp;
+        response_init(&debug_resp, 200);
+        response_append(&debug_resp,
+                        "[DEBUG] Handling request with method: POST");
 #endif
 
         if (!method || strcmp(method, "POST") != 0) {
-                response_init(405);
-                response_append("Method Not Allowed");
-                response_send();
+                response_t resp;
+                response_init(&resp, 405);
+                response_append(&resp, "Method Not Allowed");
+                response_send(&resp);
                 return 0;
         }
 
-        char* body = read_post_data();
+        body = read_post_data();
         if (!body) {
-                response_init(400);
-                response_append("Invalid or missing JSON body");
-                response_send();
+                response_t resp;
+                response_init(&resp, 400);
+                response_append(&resp, "Invalid or missing JSON body");
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("POST data read.");
+        response_append(&debug_resp, "[DEBUG] POST data read successfully.");
 #endif
 
-        struct json_object* jobj = json_tokener_parse(body);
-        free(body);
+        jobj = json_tokener_parse(body);
+        free(body);// Free the raw POST body immediately after parsing attempt
 
         if (!jobj) {
-                response_init(400);
-                response_append("Malformed JSON");
-                response_send();
+                response_t resp;
+                response_init(&resp, 400);
+                response_append(&resp, "Malformed JSON");
+                response_send(&resp);
                 return 0;
         }
 
@@ -68,102 +79,152 @@ int main(void) {
             !json_object_object_get_ex(jobj, "username", &j_username) ||
             !json_object_object_get_ex(jobj, "password", &j_password)) {
                 json_object_put(jobj);
-                response_init(400);
-                response_append("Missing csrf, username, or password field.");
-                response_send();
+                response_t resp;
+                response_init(&resp, 400);
+                response_append(&resp,
+                                "Missing csrf, username, or password field.");
+                response_send(&resp);
                 return 0;
         }
 
-        const char* csrf_token   = json_object_get_string(j_csrf);
-        const char* username_raw = json_object_get_string(j_username);
-        const char* password     = json_object_get_string(j_password);
+        const char* csrf_token_raw = json_object_get_string(j_csrf);
+        const char* username_raw   = json_object_get_string(j_username);
+        const char* password       = json_object_get_string(j_password);
 
-        if (!csrf_token || !username_raw || !password) {
+        if (!csrf_token_raw || !username_raw || !password) {
                 json_object_put(jobj);
-                response_init(400);
-                response_append("All fields must be non-empty strings.");
-                response_send();
+                response_t resp;
+                response_init(&resp, 400);
+                response_append(&resp, "All fields must be non-empty strings.");
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("Extracted CSRF, username, and password.");
+        response_append(
+            &debug_resp,
+            "[DEBUG] Extracted fields: csrf, username, and password.");
 #endif
 
-        char csrf_token_sanitized[256];
-        if (!sanitize(csrf_token_sanitized, csrf_token,
-                      sizeof(csrf_token_sanitized))) {
+        // --- SANITIZATION START ---
+        csrf_token_sanitized = sanitizec_apply(
+            csrf_token_raw, SANITIZEC_RULE_HEX_ONLY, &error_message);
+        if (!csrf_token_sanitized) {
                 json_object_put(jobj);
-                response_init(400);
-                response_append("Failed to sanitize CSRF token.");
-                response_send();
+                response_t resp;
+                response_init(&resp, 400);
+#if DEBUG
+                response_append(
+                    &resp, error_message
+                               ? error_message
+                               : "Failed to sanitize CSRF (unknown error).");
+#else
+                response_append(&resp, "Failed to sanitize CSRF.");
+#endif
+                response_send(&resp);
                 return 0;
         }
 
-        if (!csrf_validate_token(csrf_token_sanitized)) {
+        username_sanitized = sanitizec_apply(
+            username_raw, SANITIZEC_RULE_ALPHANUMERIC_ONLY, &error_message);
+        if (!username_sanitized) {
                 json_object_put(jobj);
-                response_init(400);
-                response_append("Invalid CSRF token.");
-                response_send();
+                free(csrf_token_sanitized);// Cleanup token
+                response_t resp;
+                response_init(&resp, 400);
+#if DEBUG
+                response_append(
+                    &resp,
+                    error_message
+                        ? error_message
+                        : "Failed to sanitize username (unknown error).");
+#else
+                response_append(&resp, "Failed to sanitize username.");
+#endif
+                response_send(&resp);
+                return 0;
+        }
+        // --- SANITIZATION END ---
+
+        // CSRF Validation
+        const char* csrf_err = NULL;
+        if (!csrf_validate_token(csrf_token_sanitized, &csrf_err)) {
+                json_object_put(jobj);
+                free(csrf_token_sanitized);// Cleanup token
+                free(username_sanitized);  // Cleanup username
+                response_t resp;
+                response_init(&resp, 400);
+#if DEBUG
+                response_append(
+                    &resp, csrf_err ? csrf_err
+                                    : "Invalid CSRF token (unknown reason).");
+#else
+                response_append(&resp, "Invalid CSRF token.");
+#endif
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("CSRF token validated.");
+        response_append(&debug_resp,
+                        "[DEBUG] CSRF token validated successfully.");
 #endif
 
-        char username_sanitized[64];
-        if (!sanitize(username_sanitized, username_raw,
-                      sizeof(username_sanitized))) {
-                json_object_put(jobj);
-                response_init(400);
-                response_append("Failed to sanitize username.");
-                response_send();
-                return 0;
-        }
-
-#if DEBUG
-        response_append("Username sanitized.");
-#endif
-
-        json_object_put(jobj);// cleanup parsed JSON
+        // Cleanup parsed JSON object now that all values are extracted
+        json_object_put(jobj);
+        // Cleanup the *raw* sanitized token as validation is complete
+        free(csrf_token_sanitized);
+        csrf_token_sanitized = NULL;
 
         // Open database
-        sqlite3* db = NULL;
         if (sqlite3_open(DB_PATH, &db) != SQLITE_OK) {
-                response_init(500);
-#if DEBUG
-                response_append(sqlite3_errmsg(db));
-#else
-                response_append("Failed to open database.");
-#endif
+                const char* db_err = sqlite3_errmsg(db);
                 sqlite3_close(db);
-                response_send();
+                free(username_sanitized);// Cleanup username
+                response_t resp;
+                response_init(&resp, 500);
+#if DEBUG
+                response_append(
+                    &resp, db_err ? db_err
+                                  : "Failed to open database (unknown error).");
+#else
+                response_append(&resp, "Failed to open database.");
+#endif
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("Database opened.");
+        response_append(&debug_resp, "[DEBUG] Database opened. Fetching user.");
 #endif
 
         // Fetch user
-        user_t* user    = NULL;
-        const char* err = user_fetch_by_username(db, username_sanitized, &user);
+        user_t* user     = NULL;
+        int user_fetched = user_fetch_by_username(db, username_sanitized, &user,
+                                                  &error_message);
         sqlite3_close(db);
 
-        if (err || !user) {
-                response_init(401);
+        // Cleanup sanitized username after use
+        free(username_sanitized);
+        username_sanitized = NULL;
+
+        if (error_message || !user || !user_fetched) {
+                response_t resp;
+                response_init(&resp, 401);
 #if DEBUG
-                response_append(err ? err : "User not found.");
+                response_append(
+                    &resp, error_message ? error_message : "User not found.");
 #else
-                response_append("Invalid username or password.");
+                response_append(&resp, "Invalid username or password.");
 #endif
-                response_send();
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("User fetched from database.");
+        response_append(
+            &debug_resp,
+            "[DEBUG] User fetched successfully. Verifying password.");
 #endif
 
         const char* pw_err = NULL;
@@ -171,42 +232,50 @@ int main(void) {
 
         if (match != 1) {
                 user_free(user);
-                response_init(401);
+                response_t resp;
+                response_init(&resp, 401);
 #if DEBUG
-                response_append(pw_err ? pw_err : "Invalid credentials.");
+                response_append(&resp,
+                                pw_err ? pw_err : "Invalid credentials.");
 #else
-                response_append("Invalid username or password.");
+                response_append(&resp, "Invalid username or password.");
 #endif
-                response_send();
+                response_send(&resp);
                 return 0;
         }
 
 #if DEBUG
-        response_append("Password verified.");
+        response_append(&debug_resp, "[DEBUG] Password verified. Issuing JWT.");
 #endif
 
         // Issue JWT
         char user_id_str[16];
         snprintf(user_id_str, sizeof(user_id_str), "%d", user->id);
-        char* token = issue_jwt(user_id_str);
+        const char* jwt_err = NULL;// Variable to capture the JWT error message
+        char* token         = issue_jwt(user_id_str, &jwt_err);
         user_free(user);
 
         if (!token) {
-                response_init(500);
-                response_append("Failed to issue JWT.");
-                response_send();
+                response_t resp;
+                response_init(&resp, 500);
+#if DEBUG
+                // Use the specific error message for debugging
+                response_append(
+                    &resp,
+                    jwt_err ? jwt_err : "Failed to issue JWT (unknown error).");
+#else
+                // Print a generic error message for production
+                response_append(&resp, "Couldn't generate JWT.");
+#endif
+                response_send(&resp);
                 return 0;
         }
-
-#if DEBUG
-        response_append("JWT issued.");
-#endif
-
         // Build JSON response
         struct json_object* res = json_object_new_object();
         json_object_object_add(res, "token", json_object_new_string(token));
-        free(token);
+        free(token);// Free the allocated token string
 
+        // Send success response
         printf("Status: 200\r\n");
         printf("Content-Type: application/json\r\n\r\n");
         printf("%s\n", json_object_to_json_string(res));

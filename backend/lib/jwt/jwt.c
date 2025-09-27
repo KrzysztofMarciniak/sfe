@@ -1,5 +1,6 @@
 #include "jwt.h"
 
+#include <sanitizec.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -80,6 +81,22 @@ char* issue_jwt(const char* id, const char** errmsg) {
         return token;
 }
 
+/**
+ * @brief Validates a JWT token and extracts its claims.
+ *
+ * This function sanitizes the input token, validates it against a secret, and
+ * extracts the claims into a `json_object` for further use. It handles various
+ * validation failures and ensures proper memory management.
+ *
+ * @param token The JWT token string to validate. It will be sanitized before
+ * validation.
+ * @param claims_out A pointer to a `struct json_object` pointer where the
+ * extracted claims will be stored upon successful validation.
+ * This object must be freed by the caller using `json_object_put()`.
+ * @param errmsg A pointer to a `const char*` where a detailed error message
+ * will be stored upon failure. The caller should not free this memory.
+ * @return `true` if the token is valid, `false` otherwise.
+ */
 bool val_jwt(const char* token, struct json_object** claims_out,
              const char** errmsg) {
         // Initialize output pointers
@@ -98,10 +115,20 @@ bool val_jwt(const char* token, struct json_object** claims_out,
                 return false;
         }
 
+        // Sanitize the token to prevent unexpected characters.
+        char* sanitized_token =
+            sanitizec_apply(token, SANITIZEC_RULE_ALPHANUMERIC_ONLY, NULL);
+        if (!sanitized_token) {
+                if (errmsg) {
+                        *errmsg = "Token sanitization failed.";
+                }
+                return false;
+        }
+
         // Get the secret from the secrets management module.
         const char* secret = get_jwt_secret(errmsg);
         if (!secret) {
-                // The error message is already set by get_jwt_secret().
+                free(sanitized_token);
                 return false;
         }
         // Check if the secret is empty.
@@ -109,12 +136,17 @@ bool val_jwt(const char* token, struct json_object** claims_out,
                 if (errmsg) {
                         *errmsg = "JWT secret is empty.";
                 }
+                free(sanitized_token);
                 return false;
         }
 
         // Validate the token using the jwtc library.
         char* jwt_lib_error = NULL;
-        int valid = jwtc_validate(token, secret, 0, claims_out, &jwt_lib_error);
+        int valid = jwtc_validate(sanitized_token, secret, 0, claims_out,
+                                  &jwt_lib_error);
+
+        // Clean up the sanitized token.
+        free(sanitized_token);
 
         // Check the validation result.
         if (!valid) {
@@ -127,8 +159,6 @@ bool val_jwt(const char* token, struct json_object** claims_out,
                 // Set the error message for the caller.
                 if (errmsg) {
                         if (jwt_lib_error) {
-                                // Use a generic static message as the library's
-                                // message is malloc'd.
                                 *errmsg = "JWT validation failed.";
                         } else {
                                 *errmsg =
