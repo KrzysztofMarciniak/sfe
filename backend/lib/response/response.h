@@ -19,7 +19,7 @@
  * track if the response has been sent.
  */
 typedef struct {
-        struct json_object *response_array;
+        struct json_object* response_array;
         unsigned int response_code;
         bool response_sent;
 } response_t;
@@ -30,7 +30,7 @@ typedef struct {
  * @param resp A pointer to the `response_t` struct to initialize.
  * @param http_code The HTTP status code to use for the response.
  */
-void response_init(response_t *resp, unsigned int http_code);
+void response_init(response_t* resp, unsigned int http_code);
 
 /**
  * @brief Appends a new message string to the response's JSON array.
@@ -39,13 +39,13 @@ void response_init(response_t *resp, unsigned int http_code);
  * @param msg The string message to append.
  * @return Returns true on success, false on failure.
  */
-bool response_append(response_t *resp, const char *msg);
+bool response_append(response_t* resp, const char* msg);
 
 /**
  * @brief Sends the complete HTTP response to standard output.
  *
  * @param resp A pointer to the `response_t` struct.
  */
-void response_send(response_t *resp);
+void response_send(response_t* resp);
 
 #endif// RESPONSE_H

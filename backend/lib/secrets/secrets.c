@@ -7,10 +7,10 @@
 #define CSRF_PATH "/app/backend/.secrets/csrf.txt"
 #define JWT_PATH "/app/backend/.secrets/jwt.txt"
 
-static char *read_secret_file(const char *path, const char **errmsg) {
+static char* read_secret_file(const char* path, const char** errmsg) {
         if (errmsg) *errmsg = NULL;
 
-        FILE *f = fopen(path, "r");
+        FILE* f = fopen(path, "r");
         if (!f) {
                 if (errmsg) *errmsg = "Failed to open secret file.";
                 return NULL;
@@ -29,7 +29,7 @@ static char *read_secret_file(const char *path, const char **errmsg) {
         }
         rewind(f);
 
-        char *buffer = malloc(size + 1);
+        char* buffer = malloc(size + 1);
         if (!buffer) {
                 if (errmsg) *errmsg = "Memory allocation failed for secret.";
                 fclose(f);
@@ -47,7 +47,8 @@ static char *read_secret_file(const char *path, const char **errmsg) {
 
         buffer[size] = '\0';
 
-        while (size > 0 && (buffer[size - 1] == '\n' || buffer[size - 1] == '\r')) {
+        while (size > 0 &&
+               (buffer[size - 1] == '\n' || buffer[size - 1] == '\r')) {
                 buffer[size - 1] = '\0';
                 size--;
         }
@@ -55,16 +56,16 @@ static char *read_secret_file(const char *path, const char **errmsg) {
         return buffer;
 }
 
-const char *get_csrf_secret(const char **errmsg) {
-        static char *csrf_secret = NULL;
+const char* get_csrf_secret(const char** errmsg) {
+        static char* csrf_secret = NULL;
         if (!csrf_secret) {
                 csrf_secret = read_secret_file(CSRF_PATH, errmsg);
         }
         return csrf_secret;
 }
 
-const char *get_jwt_secret(const char **errmsg) {
-        static char *jwt_secret = NULL;
+const char* get_jwt_secret(const char** errmsg) {
+        static char* jwt_secret = NULL;
         if (!jwt_secret) {
                 jwt_secret = read_secret_file(JWT_PATH, errmsg);
         }

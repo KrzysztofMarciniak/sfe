@@ -27,7 +27,7 @@ extern "C" {
  * @return A newly allocated string containing the password hash.
  *         Must be freed by the caller. Returns NULL on failure.
  */
-char *hash_password(const char *password, const char **err);
+char* hash_password(const char* password, const char** err);
 
 /**
  * @brief Verify a password against a stored PBKDF2-HMAC-SHA256 hash.
@@ -40,7 +40,8 @@ char *hash_password(const char *password, const char **err);
  * @param err Optional pointer to receive an error message (NULL on success).
  * @return 1 if the password matches, 0 if it does not, -1 on error.
  */
-int verify_password(const char *password, const char *stored_hash, const char **err);
+int verify_password(const char* password, const char* stored_hash,
+                    const char** err);
 
 #ifdef __cplusplus
 }

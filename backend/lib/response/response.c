@@ -30,9 +30,10 @@ static pthread_mutex_t response_mutex = PTHREAD_MUTEX_INITIALIZER;
  * for messages. If a previous array exists in the struct, it is freed.
  *
  * @param resp A pointer to the `response_t` struct to initialize.
- * @param http_code The HTTP status code to use for the response (e.g., 200 for OK).
+ * @param http_code The HTTP status code to use for the response (e.g., 200 for
+ * OK).
  */
-void response_init(response_t *resp, unsigned int http_code) {
+void response_init(response_t* resp, unsigned int http_code) {
         pthread_mutex_lock(&response_mutex);
         if (resp->response_array) {
                 json_object_put(resp->response_array);
@@ -54,14 +55,14 @@ void response_init(response_t *resp, unsigned int http_code) {
  * @param msg The string message to append.
  * @return Returns true on success, false on failure.
  */
-bool response_append(response_t *resp, const char *msg) {
+bool response_append(response_t* resp, const char* msg) {
         pthread_mutex_lock(&response_mutex);
         if (!msg || resp->response_sent || !resp->response_array) {
                 pthread_mutex_unlock(&response_mutex);
                 return false;
         }
 
-        struct json_object *jmsg = json_object_new_string(msg);
+        struct json_object* jmsg = json_object_new_string(msg);
         if (!jmsg) {
                 pthread_mutex_unlock(&response_mutex);
                 return false;
@@ -81,7 +82,7 @@ bool response_append(response_t *resp, const char *msg) {
  *
  * @param resp A pointer to the `response_t` struct.
  */
-void response_send(response_t *resp) {
+void response_send(response_t* resp) {
         pthread_mutex_lock(&response_mutex);
         if (resp->response_sent || !resp->response_array) {
                 pthread_mutex_unlock(&response_mutex);
@@ -89,7 +90,7 @@ void response_send(response_t *resp) {
         }
         resp->response_sent = true;
 
-        struct json_object *response_obj = json_object_new_object();
+        struct json_object* response_obj = json_object_new_object();
         json_object_object_add(response_obj, "messages", resp->response_array);
 
         printf("Status: %d\r\n", resp->response_code);

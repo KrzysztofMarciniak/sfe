@@ -10,6 +10,6 @@
  * @param status HTTP status code to include in response
  * @param error Error message string
  */
-void die(int status, const char *error);
+void die(int status, const char* error);
 
 #endif

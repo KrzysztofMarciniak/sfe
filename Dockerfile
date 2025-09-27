@@ -25,6 +25,15 @@ RUN git clone https://github.com/KrzysztofMarciniak/jwtc.git /app/jwtc \
     && chmod +x ./install.sh \
     && ./install.sh
 
+# Clone and build the external sanitizec library.
+RUN git clone https://github.com/KrzysztofMarciniak/sanitizec.git /app/sanitizec \
+    && cd /app/sanitizec \
+    && chmod +x generate_build.sh \
+    && ./generate_build.sh \
+    && chmod +x ./install.sh \
+    && ./install.sh
+
+
 # --- Stage 2: Frontend ---
 # This stage handles all frontend assets, including Pico.css and Alpine.js.
 FROM alpine:latest AS frontend

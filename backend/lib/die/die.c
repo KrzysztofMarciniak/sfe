@@ -23,7 +23,7 @@
  * @note Prints Content-Type header and JSON to stdout
  * @note Always exits with status code 1 regardless of input status
  */
-void die(int status, const char *error) {
+void die(int status, const char* error) {
         printf("Content-Type: application/json\r\n\r\n");
         printf("{\"status\":%d,\"error\":\"%s\"}\n", status, error);
         exit(1);

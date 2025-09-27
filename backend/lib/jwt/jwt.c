@@ -11,7 +11,8 @@
  * @brief Issues a JWT token with a single "id" claim, valid for one week.
  *
  * Creates a JWT containing the provided id as the "id" claim. The token is
- * signed using the secret obtained from get_jwt_secret() and expires in one week.
+ * signed using the secret obtained from get_jwt_secret() and expires in one
+ week.
  *
  * @param id The user or entity ID to include in the token.
 
@@ -19,7 +20,7 @@
  *         Returns NULL on failure.
  */
 
-char *issue_jwt(const char *id, const char **errmsg) {
+char* issue_jwt(const char* id, const char** errmsg) {
         if (errmsg) {
                 *errmsg = NULL;
         }
@@ -31,7 +32,7 @@ char *issue_jwt(const char *id, const char **errmsg) {
                 return NULL;
         }
 
-        const char *secret = get_jwt_secret(errmsg);
+        const char* secret = get_jwt_secret(errmsg);
         if (!secret) {
                 return NULL;
         }
@@ -42,7 +43,7 @@ char *issue_jwt(const char *id, const char **errmsg) {
                 return NULL;
         }
 
-        struct json_object *claims = json_object_new_object();
+        struct json_object* claims = json_object_new_object();
         if (!claims) {
                 if (errmsg) {
                         *errmsg = "Failed to create JSON object for claims.";
@@ -53,10 +54,11 @@ char *issue_jwt(const char *id, const char **errmsg) {
         json_object_object_add(claims, "id", json_object_new_string(id));
         time_t now = time(NULL);
         json_object_object_add(claims, "iat", json_object_new_int64(now));
-        json_object_object_add(claims, "exp", json_object_new_int64(now + 604800));
+        json_object_object_add(claims, "exp",
+                               json_object_new_int64(now + 604800));
 
-        char *jwt_error = NULL;
-        char *token     = jwtc_generate(secret, 604800, claims, &jwt_error);
+        char* jwt_error = NULL;
+        char* token     = jwtc_generate(secret, 604800, claims, &jwt_error);
 
         json_object_put(claims);
 
@@ -65,7 +67,8 @@ char *issue_jwt(const char *id, const char **errmsg) {
                         if (jwt_error) {
                                 *errmsg = "JWT generation failed.";
                         } else {
-                                *errmsg = "JWT generation failed with unknown error.";
+                                *errmsg =
+                                    "JWT generation failed with unknown error.";
                         }
                 }
         }
@@ -77,7 +80,8 @@ char *issue_jwt(const char *id, const char **errmsg) {
         return token;
 }
 
-bool val_jwt(const char *token, struct json_object **claims_out, const char **errmsg) {
+bool val_jwt(const char* token, struct json_object** claims_out,
+             const char** errmsg) {
         // Initialize output pointers
         if (errmsg) {
                 *errmsg = NULL;
@@ -95,7 +99,7 @@ bool val_jwt(const char *token, struct json_object **claims_out, const char **er
         }
 
         // Get the secret from the secrets management module.
-        const char *secret = get_jwt_secret(errmsg);
+        const char* secret = get_jwt_secret(errmsg);
         if (!secret) {
                 // The error message is already set by get_jwt_secret().
                 return false;
@@ -109,8 +113,8 @@ bool val_jwt(const char *token, struct json_object **claims_out, const char **er
         }
 
         // Validate the token using the jwtc library.
-        char *jwt_lib_error = NULL;
-        int valid           = jwtc_validate(token, secret, 0, claims_out, &jwt_lib_error);
+        char* jwt_lib_error = NULL;
+        int valid = jwtc_validate(token, secret, 0, claims_out, &jwt_lib_error);
 
         // Check the validation result.
         if (!valid) {
@@ -123,11 +127,13 @@ bool val_jwt(const char *token, struct json_object **claims_out, const char **er
                 // Set the error message for the caller.
                 if (errmsg) {
                         if (jwt_lib_error) {
-                                // Use a generic static message as the library's message is
-                                // malloc'd.
+                                // Use a generic static message as the library's
+                                // message is malloc'd.
                                 *errmsg = "JWT validation failed.";
                         } else {
-                                *errmsg = "JWT validation failed with an unknown error.";
+                                *errmsg =
+                                    "JWT validation failed with an unknown "
+                                    "error.";
                         }
                 }
 

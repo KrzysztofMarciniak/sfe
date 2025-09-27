@@ -8,12 +8,12 @@
  *
  * This function:
  * - Removes **leading and trailing ASCII whitespace**.
- * - Escapes **single quotes (`'`)** by doubling them (`''`), which helps prevent
- *   SQL injection when inserting untrusted strings into SQL queries.
+ * - Escapes **single quotes (`'`)** by doubling them (`''`), which helps
+ * prevent SQL injection when inserting untrusted strings into SQL queries.
  *
  * The sanitized result is written into the `dest` buffer. If the buffer is too
- * small to hold the sanitized string (including escaped quotes and null-terminator),
- * the function returns `NULL` and does not modify `dest`.
+ * small to hold the sanitized string (including escaped quotes and
+ * null-terminator), the function returns `NULL` and does not modify `dest`.
  *
  * ### Example:
  * @code
@@ -36,18 +36,18 @@
  * @note This function operates on ASCII input. It is not Unicode-aware.
  * @note This is not a substitute for proper parameterized SQL queries.
  */
-char *sanitize(char *dest, const char *src, size_t dest_size) {
+char* sanitize(char* dest, const char* src, size_t dest_size) {
         if (!dest || !src || dest_size == 0) return NULL;
 
         // Skip leading whitespace
         while (*src && isspace((unsigned char)*src)) src++;
 
         // Find end of string without trailing whitespace
-        const char *end = src + strlen(src);
+        const char* end = src + strlen(src);
         while (end > src && isspace((unsigned char)*(end - 1))) end--;
 
         size_t j = 0;
-        for (const char *p = src; p < end; p++) {
+        for (const char* p = src; p < end; p++) {
                 unsigned char c = (unsigned char)*p;
 
                 if (c == '\'') {

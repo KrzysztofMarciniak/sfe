@@ -13,8 +13,8 @@
 
 int main(void) {
         response_t resp;
-        const char *errmsg = NULL;
-        const char *method = getenv("REQUEST_METHOD");
+        const char* errmsg = NULL;
+        const char* method = getenv("REQUEST_METHOD");
 
         if (!method) {
                 response_init(&resp, 400);
@@ -24,25 +24,27 @@ int main(void) {
         }
 
         if (strcmp(method, "GET") == 0) {
-                char *token = csrf_generate_token(&errmsg);
+                char* token = csrf_generate_token(&errmsg);
                 if (!token) {
                         response_init(&resp, 500);
 #if DEBUG
                         if (errmsg) {
                                 response_append(&resp, errmsg);
                         } else {
-                                response_append(&resp, "Failed to generate CSRF token.");
+                                response_append(
+                                    &resp, "Failed to generate CSRF token.");
                         }
 #else
-                        response_append(&resp, "Failed to generate CSRF token.");
+                        response_append(&resp,
+                                        "Failed to generate CSRF token.");
 #endif
                         response_send(&resp);
                         return 0;
                 }
 
                 response_init(&resp, 200);
-                struct json_object *token_obj    = json_object_new_string(token);
-                struct json_object *response_obj = json_object_new_object();
+                struct json_object* token_obj = json_object_new_string(token);
+                struct json_object* response_obj = json_object_new_object();
                 json_object_object_add(response_obj, "token", token_obj);
                 printf("Status: 200 OK\r\n");
                 printf("Content-Type: application/json\r\n\r\n");
@@ -54,7 +56,7 @@ int main(void) {
         }
 
         if (strcmp(method, "POST") == 0) {
-                char *body = read_post_data();
+                char* body = read_post_data();
                 if (!body) {
                         response_init(&resp, 400);
                         response_append(&resp, "Missing or invalid POST body.");
@@ -62,7 +64,7 @@ int main(void) {
                         return 0;
                 }
 
-                struct json_object *jobj = json_tokener_parse(body);
+                struct json_object* jobj = json_tokener_parse(body);
                 free(body);
                 if (!jobj) {
                         response_init(&resp, 400);
@@ -71,7 +73,7 @@ int main(void) {
                         return 0;
                 }
 
-                struct json_object *j_token = NULL;
+                struct json_object* j_token = NULL;
                 if (!json_object_object_get_ex(jobj, "token", &j_token)) {
                         response_init(&resp, 400);
                         response_append(&resp, "Missing 'token' field.");
@@ -80,10 +82,11 @@ int main(void) {
                         return 0;
                 }
 
-                const char *token = json_object_get_string(j_token);
+                const char* token = json_object_get_string(j_token);
                 if (!token) {
                         response_init(&resp, 400);
-                        response_append(&resp, "'token' field must be a string.");
+                        response_append(&resp,
+                                        "'token' field must be a string.");
                         json_object_put(jobj);
                         response_send(&resp);
                         return 0;
@@ -102,7 +105,8 @@ int main(void) {
                         if (errmsg) {
                                 response_append(&resp, errmsg);
                         } else {
-                                response_append(&resp, "CSRF token validation failed.");
+                                response_append(
+                                    &resp, "CSRF token validation failed.");
                         }
 #else
                         response_append(&resp, "CSRF token validation failed.");

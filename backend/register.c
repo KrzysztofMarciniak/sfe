@@ -18,7 +18,7 @@
 #define DB_PATH "/data/sfe.db"
 #define DEBUG 1
 
-const char *validate_username(const char *str) {
+const char* validate_username(const char* str) {
         if (!str || *str == '\0') {
                 return "username is empty";
         }
@@ -30,7 +30,8 @@ const char *validate_username(const char *str) {
 
         for (size_t i = 0; i < len; i++) {
                 if (!(isalnum((unsigned char)str[i]) || str[i] == '_')) {
-                        return "username is invalid (only alphanumeric or underscore allowed)";
+                        return "username is invalid (only alphanumeric or "
+                               "underscore allowed)";
                 }
         }
 
@@ -38,7 +39,7 @@ const char *validate_username(const char *str) {
 }
 
 int main(void) {
-        const char *method = getenv("REQUEST_METHOD");
+        const char* method = getenv("REQUEST_METHOD");
 
 #if DEBUG
         response_init(400);
@@ -59,7 +60,7 @@ int main(void) {
                 return 0;
         }
 
-        char *body = read_post_data();
+        char* body = read_post_data();
         if (!body) {
                 response_init(400);
                 response_append("Invalid or missing JSON body");
@@ -71,7 +72,7 @@ int main(void) {
         response_append("POST data read successfully.");
 #endif
 
-        struct json_object *jobj = json_tokener_parse(body);
+        struct json_object* jobj = json_tokener_parse(body);
         free(body);
 
         if (!jobj) {
@@ -81,9 +82,9 @@ int main(void) {
                 return 0;
         }
 
-        struct json_object *j_csrf     = NULL;
-        struct json_object *j_username = NULL;
-        struct json_object *j_password = NULL;
+        struct json_object* j_csrf     = NULL;
+        struct json_object* j_username = NULL;
+        struct json_object* j_password = NULL;
 
         if (!json_object_object_get_ex(jobj, "csrf", &j_csrf) ||
             !json_object_object_get_ex(jobj, "username", &j_username) ||
@@ -95,14 +96,15 @@ int main(void) {
                 return 0;
         }
 
-        const char *csrf_token   = json_object_get_string(j_csrf);
-        const char *username_raw = json_object_get_string(j_username);
-        const char *password     = json_object_get_string(j_password);
+        const char* csrf_token   = json_object_get_string(j_csrf);
+        const char* username_raw = json_object_get_string(j_username);
+        const char* password     = json_object_get_string(j_password);
 
         if (!csrf_token || !username_raw || !password) {
                 json_object_put(jobj);
                 response_init(400);
-                response_append("Missing or invalid csrf, username, or password.");
+                response_append(
+                    "Missing or invalid csrf, username, or password.");
                 response_send();
                 return 0;
         }
@@ -112,7 +114,8 @@ int main(void) {
 #endif
 
         char csrf_token_sanitized[256];
-        if (!sanitize(csrf_token_sanitized, csrf_token, sizeof(csrf_token_sanitized))) {
+        if (!sanitize(csrf_token_sanitized, csrf_token,
+                      sizeof(csrf_token_sanitized))) {
                 json_object_put(jobj);
                 response_init(400);
                 response_append("Failed to sanitize CSRF token.");
@@ -145,7 +148,7 @@ int main(void) {
                 return 0;
         }
 
-        const char *validation_err = validate_username(username_raw);
+        const char* validation_err = validate_username(username_raw);
         if (validation_err) {
                 response_init(400);
                 response_append(validation_err);
@@ -154,7 +157,8 @@ int main(void) {
         }
 
         char username_sanitized[64];
-        if (!sanitize(username_sanitized, username_raw, sizeof(username_sanitized))) {
+        if (!sanitize(username_sanitized, username_raw,
+                      sizeof(username_sanitized))) {
                 response_init(400);
                 response_append("Failed to sanitize username.");
                 response_send();
@@ -165,12 +169,13 @@ int main(void) {
         response_append("Username validated and sanitized.");
 #endif
 
-        const char *hash_err = NULL;
-        char *password_hash  = hash_password(password, &hash_err);
+        const char* hash_err = NULL;
+        char* password_hash  = hash_password(password, &hash_err);
 
         if (!password_hash) {
                 response_init(500);
-                response_append(hash_err ? hash_err : "Password hashing failed.");
+                response_append(hash_err ? hash_err
+                                         : "Password hashing failed.");
                 response_send();
                 return 0;
         }
@@ -185,7 +190,7 @@ int main(void) {
             .password_hash = password_hash,
         };
 
-        sqlite3 *db = NULL;
+        sqlite3* db = NULL;
         if (sqlite3_open(DB_PATH, &db) != SQLITE_OK) {
                 response_init(500);
                 response_append(sqlite3_errmsg(db));
@@ -199,8 +204,8 @@ int main(void) {
         response_append("Database opened.");
 #endif
 
-        user_t *inserted_user = NULL;
-        const char *err       = user_insert(db, &user, &inserted_user);
+        user_t* inserted_user = NULL;
+        const char* err       = user_insert(db, &user, &inserted_user);
 
         sqlite3_close(db);
         free(password_hash);

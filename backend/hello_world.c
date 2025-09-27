@@ -14,11 +14,12 @@
 int main(void) {
         response_t my_response;
 
-        const char *method = getenv("REQUEST_METHOD");
+        const char* method = getenv("REQUEST_METHOD");
 
         if (!method) {
                 response_init(&my_response, 400);
-                response_append(&my_response, "Bad Request: Missing REQUEST_METHOD");
+                response_append(&my_response,
+                                "Bad Request: Missing REQUEST_METHOD");
                 response_send(&my_response);
                 return 1;
         }

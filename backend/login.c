@@ -25,7 +25,7 @@
 #define DEBUG 1
 
 int main(void) {
-        const char *method = getenv("REQUEST_METHOD");
+        const char* method = getenv("REQUEST_METHOD");
 
 #if DEBUG
         response_init(400);
@@ -39,7 +39,7 @@ int main(void) {
                 return 0;
         }
 
-        char *body = read_post_data();
+        char* body = read_post_data();
         if (!body) {
                 response_init(400);
                 response_append("Invalid or missing JSON body");
@@ -51,7 +51,7 @@ int main(void) {
         response_append("POST data read.");
 #endif
 
-        struct json_object *jobj = json_tokener_parse(body);
+        struct json_object* jobj = json_tokener_parse(body);
         free(body);
 
         if (!jobj) {
@@ -61,7 +61,8 @@ int main(void) {
                 return 0;
         }
 
-        struct json_object *j_csrf = NULL, *j_username = NULL, *j_password = NULL;
+        struct json_object *j_csrf = NULL, *j_username = NULL,
+                           *j_password = NULL;
 
         if (!json_object_object_get_ex(jobj, "csrf", &j_csrf) ||
             !json_object_object_get_ex(jobj, "username", &j_username) ||
@@ -73,9 +74,9 @@ int main(void) {
                 return 0;
         }
 
-        const char *csrf_token   = json_object_get_string(j_csrf);
-        const char *username_raw = json_object_get_string(j_username);
-        const char *password     = json_object_get_string(j_password);
+        const char* csrf_token   = json_object_get_string(j_csrf);
+        const char* username_raw = json_object_get_string(j_username);
+        const char* password     = json_object_get_string(j_password);
 
         if (!csrf_token || !username_raw || !password) {
                 json_object_put(jobj);
@@ -90,7 +91,8 @@ int main(void) {
 #endif
 
         char csrf_token_sanitized[256];
-        if (!sanitize(csrf_token_sanitized, csrf_token, sizeof(csrf_token_sanitized))) {
+        if (!sanitize(csrf_token_sanitized, csrf_token,
+                      sizeof(csrf_token_sanitized))) {
                 json_object_put(jobj);
                 response_init(400);
                 response_append("Failed to sanitize CSRF token.");
@@ -111,7 +113,8 @@ int main(void) {
 #endif
 
         char username_sanitized[64];
-        if (!sanitize(username_sanitized, username_raw, sizeof(username_sanitized))) {
+        if (!sanitize(username_sanitized, username_raw,
+                      sizeof(username_sanitized))) {
                 json_object_put(jobj);
                 response_init(400);
                 response_append("Failed to sanitize username.");
@@ -126,7 +129,7 @@ int main(void) {
         json_object_put(jobj);// cleanup parsed JSON
 
         // Open database
-        sqlite3 *db = NULL;
+        sqlite3* db = NULL;
         if (sqlite3_open(DB_PATH, &db) != SQLITE_OK) {
                 response_init(500);
 #if DEBUG
@@ -144,8 +147,8 @@ int main(void) {
 #endif
 
         // Fetch user
-        user_t *user    = NULL;
-        const char *err = user_fetch_by_username(db, username_sanitized, &user);
+        user_t* user    = NULL;
+        const char* err = user_fetch_by_username(db, username_sanitized, &user);
         sqlite3_close(db);
 
         if (err || !user) {
@@ -163,8 +166,8 @@ int main(void) {
         response_append("User fetched from database.");
 #endif
 
-        const char *pw_err = NULL;
-        int match          = verify_password(password, user->password_hash, &pw_err);
+        const char* pw_err = NULL;
+        int match = verify_password(password, user->password_hash, &pw_err);
 
         if (match != 1) {
                 user_free(user);
@@ -185,7 +188,7 @@ int main(void) {
         // Issue JWT
         char user_id_str[16];
         snprintf(user_id_str, sizeof(user_id_str), "%d", user->id);
-        char *token = issue_jwt(user_id_str);
+        char* token = issue_jwt(user_id_str);
         user_free(user);
 
         if (!token) {
@@ -200,7 +203,7 @@ int main(void) {
 #endif
 
         // Build JSON response
-        struct json_object *res = json_object_new_object();
+        struct json_object* res = json_object_new_object();
         json_object_object_add(res, "token", json_object_new_string(token));
         free(token);
 
