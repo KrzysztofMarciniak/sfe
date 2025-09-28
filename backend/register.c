@@ -53,6 +53,10 @@ int main(void) {
         if (!method || strcmp(method, "POST") != 0) {
                 response_init(&resp, 405);
                 response_append(&resp, "Method Not Allowed");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] Method: ");
+                response_append(&resp, method ? method : "(null)");
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -61,16 +65,27 @@ int main(void) {
         if (!body) {
                 response_init(&resp, 400);
                 response_append(&resp, "Invalid or missing JSON body");
+#if DEBUG
+                response_append(&resp,
+                                "\n[DEBUG] POST body missing or invalid");
+#endif
                 response_send(&resp);
                 return 0;
         }
 
         struct json_object* jobj = json_tokener_parse(body);
+#if DEBUG
+        response_append(&resp, "\n[DEBUG] Raw JSON body: ");
+        response_append(&resp, body);
+#endif
         free(body);// Cleanup POST body
 
         if (!jobj) {
                 response_init(&resp, 400);
                 response_append(&resp, "Malformed JSON");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] json_tokener_parse failed");
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -86,6 +101,20 @@ int main(void) {
                 response_init(&resp, 400);
                 response_append(&resp,
                                 "Missing csrf, username, or password field.");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] Extracted fields:\n");
+                response_append(&resp, "csrf: ");
+                response_append(
+                    &resp, j_csrf ? json_object_get_string(j_csrf) : "(null)");
+                response_append(&resp, "\nusername: ");
+                response_append(&resp, j_username
+                                           ? json_object_get_string(j_username)
+                                           : "(null)");
+                response_append(&resp, "\npassword: ");
+                response_append(&resp, j_password
+                                           ? json_object_get_string(j_password)
+                                           : "(null)");
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -99,6 +128,15 @@ int main(void) {
                 response_init(&resp, 400);
                 response_append(
                     &resp, "Missing or invalid csrf, username, or password.");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] csrf: ");
+                response_append(&resp,
+                                csrf_token_raw ? csrf_token_raw : "(null)");
+                response_append(&resp, "\nusername: ");
+                response_append(&resp, username_raw ? username_raw : "(null)");
+                response_append(&resp, "\npassword: ");
+                response_append(&resp, password ? password : "(null)");
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -114,8 +152,8 @@ int main(void) {
                 response_append(&resp, error_message
                                            ? error_message
                                            : "Unknown sanitization error.");
-#else
-                response_append(&resp, "Failed to sanitize CSRF token.");
+                response_append(&resp, "\n[DEBUG] Raw CSRF: ");
+                response_append(&resp, csrf_token_raw);
 #endif
                 response_send(&resp);
                 return 0;
@@ -128,8 +166,10 @@ int main(void) {
 #if DEBUG
                 response_append(&resp,
                                 csrf_err ? csrf_err : "Invalid CSRF token.");
-#else
-                response_append(&resp, "Invalid CSRF token.");
+                response_append(&resp, "\n[DEBUG] Raw CSRF: ");
+                response_append(&resp, csrf_token_raw);
+                response_append(&resp, "\n[DEBUG] Sanitized CSRF: ");
+                response_append(&resp, csrf_token_sanitized);
 #endif
                 free(csrf_token_sanitized);// Cleanup
                 response_send(&resp);
@@ -146,6 +186,12 @@ int main(void) {
                 response_init(&resp, 400);
                 response_append(&resp,
                                 "Password must be at least 6 characters.");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] Username: ");
+                response_append(&resp, username_raw);
+                response_append(&resp, "\n[DEBUG] Password: ");
+                response_append(&resp, password);
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -154,6 +200,10 @@ int main(void) {
         if (validation_err) {
                 response_init(&resp, 400);
                 response_append(&resp, validation_err);
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] Username: ");
+                response_append(&resp, username_raw);
+#endif
                 response_send(&resp);
                 return 0;
         }
@@ -168,8 +218,8 @@ int main(void) {
                 response_append(&resp, error_message
                                            ? error_message
                                            : "Unknown sanitization error.");
-#else
-                response_append(&resp, "Failed to sanitize username.");
+                response_append(&resp, "\n[DEBUG] Raw username: ");
+                response_append(&resp, username_raw);
 #endif
                 response_send(&resp);
                 return 0;
@@ -184,8 +234,10 @@ int main(void) {
 #if DEBUG
                 response_append(
                     &resp, hash_err ? hash_err : "Password hashing failed.");
-#else
-                response_append(&resp, "Password hashing failed.");
+                response_append(&resp, "\n[DEBUG] Username: ");
+                response_append(&resp, username_sanitized);
+                response_append(&resp, "\n[DEBUG] Password: ");
+                response_append(&resp, password);
 #endif
                 free(username_sanitized);// Cleanup
                 response_send(&resp);
@@ -206,27 +258,24 @@ int main(void) {
                 response_init(&resp, 500);
 #if DEBUG
                 response_append(&resp, db_err);
-#else
-                response_append(&resp, "Failed to open database.");
+                response_append(&resp, "\n[DEBUG] DB_PATH: " DB_PATH);
 #endif
                 free(password_hash);     // Cleanup
                 free(username_sanitized);// Cleanup
                 response_send(&resp);
                 return 0;
         }
+        user_t* inserted_user = NULL;
+        char* user_insert_err = NULL;
 
-        user_t* inserted_user       = NULL;
-        const char* user_insert_err = NULL;// Corrected type and initialization
-        const char* err =
-            user_insert(db, &user, &inserted_user, &user_insert_err);
+        int rc = user_insert(db, &user, &inserted_user, &user_insert_err);
 
         sqlite3_close(db);
 
         free(password_hash);
         free(username_sanitized);
 
-        if (err != NULL) {
-                response_t resp;
+        if (rc != 0) {
                 response_init(&resp, 400);
 
                 const char* response_msg = "User registration failed.";
@@ -235,6 +284,10 @@ int main(void) {
                 if (user_insert_err != NULL) {
                         response_msg = user_insert_err;
                 }
+                response_append(&resp, "\n[DEBUG] Username: ");
+                response_append(&resp, user.username);
+                response_append(&resp, "\n[DEBUG] Password (hashed): ");
+                response_append(&resp, user.password_hash);
 #endif
 
                 response_append(&resp, response_msg);
@@ -243,28 +296,8 @@ int main(void) {
                         user_free(inserted_user);
                 }
 
-                // Free the allocated error message string
                 if (user_insert_err) {
-                        free((void*)user_insert_err);
-                }
-
-                response_send(&resp);
-                return 0;
-        }
-        if (err != NULL) {
-                response_init(&resp, 400);
-                const char* response_msg = err;
-
-                if (strstr(err, "UNIQUE constraint failed")) {
-                        response_msg = "Username already exists.";
-                } else if (!DEBUG) {
-                        response_msg = "User registration failed.";
-                }
-
-                response_append(&resp, response_msg);
-
-                if (inserted_user) {
-                        user_free(inserted_user);
+                        free(user_insert_err);
                 }
 
                 response_send(&resp);
@@ -278,6 +311,10 @@ int main(void) {
 
         response_init(&resp, 201);
         response_append(&resp, "User registered successfully.");
+#if DEBUG
+        response_append(&resp, "\n[DEBUG] Username: ");
+        response_append(&resp, user.username);
+#endif
         response_send(&resp);
         return 0;
 }

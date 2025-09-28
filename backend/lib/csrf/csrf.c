@@ -142,7 +142,12 @@ bool csrf_validate_token(const char* token_raw, const char** errmsg) {
 
         // 2. Length check and conversion
         if (strlen(token_sanitized) != CSRF_TOKEN_HEX_SIZE) {
-                if (errmsg) *errmsg = "Token length mismatch.";
+                if (errmsg) {
+                        char* msg;
+                        asprintf(&msg, "Token length mismatch: %s",
+                                 token_sanitized);
+                        *errmsg = msg;
+                }
                 free(token_sanitized);// Cleanup
                 return false;
         }

@@ -9,7 +9,7 @@
 #include "lib/read_post_data/read_post_data.h"
 #include "lib/response/response.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 int main(void) {
         response_t resp;
