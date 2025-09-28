@@ -13,7 +13,7 @@
                         *errmsg_ptr = strdup(msg);                            \
                         if (!(*errmsg_ptr)) {                                 \
                                 /* Handle strdup failure if possible, but for \
-                                 * simplicity, proceed with what we have */                                                         \
+                                 * simplicity, proceed with what we have */   \
                         }                                                     \
                 }                                                             \
         } while (0)
@@ -26,7 +26,7 @@
 
 int user_insert(sqlite3* db, const user_t* user, user_t** out_user,
                 char** errmsg) {
-        if (errmsg) *errmsg = NULL;// Initialize errmsg to NULL
+        if (errmsg) *errmsg = NULL;
 
         if (!db || !user || !user->username || !user->password_hash ||
             !out_user) {

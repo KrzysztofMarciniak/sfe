@@ -1,6 +1,15 @@
 /**
  * @file register.c
  * @brief CGI endpoint for user registration (signup).
+ *
+ * This endpoint handles user registration requests. It validates the request
+ * method, parses and validates JSON input, verifies CSRF tokens, checks
+ * username and password validity, hashes the password, and inserts a new user
+ * record into the database.
+ *
+ * Error handling ensures that invalid input, security violations, and database
+ * errors are returned as proper HTTP responses. Debug mode provides additional
+ * diagnostic information.
  */
 
 #include <ctype.h>
@@ -21,13 +30,16 @@
 #include "lib/response/response.h"
 
 #define DB_PATH "/data/sfe.db"
-#define DEBUG 1
+#define DEBUG 0
 
 /**
- * @brief Validates username length and character set.
+ * @brief Validate a username string.
  *
- * @param str The raw username string.
- * @return NULL on success, or an error message string on failure.
+ * Checks that the username is not empty and does not exceed the maximum
+ * allowed length.
+ *
+ * @param str The input username string.
+ * @return NULL if the username is valid, otherwise an error message string.
  */
 const char* validate_username(const char* str) {
         if (!str || *str == '\0') {
@@ -42,13 +54,27 @@ const char* validate_username(const char* str) {
         return NULL;
 }
 
+/**
+ * @brief Main entry point for the registration CGI program.
+ *
+ * Workflow:
+ *   1. Enforce POST method.
+ *   2. Parse and validate JSON body (csrf, username, password).
+ *   3. Validate CSRF token.
+ *   4. Validate password length and username format.
+ *   5. Sanitize username and reject if modified.
+ *   6. Hash the password securely.
+ *   7. Insert the new user record into the database.
+ *   8. Return appropriate HTTP response codes and messages.
+ *
+ * @return Exit code (0 on normal completion).
+ */
 int main(void) {
-        const char* method         = getenv("REQUEST_METHOD");
-        char* csrf_token_sanitized = NULL;
-        char* username_sanitized   = NULL;
-        char* password_hash        = NULL;
-        char* error_message = NULL;// Used by sanitizec_apply for debug info
-        response_t resp;           // Correctly declare the response struct
+        const char* method       = getenv("REQUEST_METHOD");
+        char* username_sanitized = NULL;
+        char* password_hash      = NULL;
+        char* error_message      = NULL;
+        response_t resp;
 
         if (!method || strcmp(method, "POST") != 0) {
                 response_init(&resp, 405);
@@ -78,7 +104,7 @@ int main(void) {
         response_append(&resp, "\n[DEBUG] Raw JSON body: ");
         response_append(&resp, body);
 #endif
-        free(body);// Cleanup POST body
+        free(body);
 
         if (!jobj) {
                 response_init(&resp, 400);
@@ -93,7 +119,6 @@ int main(void) {
         struct json_object *j_csrf = NULL, *j_username = NULL,
                            *j_password = NULL;
 
-        // 1. Extract JSON fields
         if (!json_object_object_get_ex(jobj, "csrf", &j_csrf) ||
             !json_object_object_get_ex(jobj, "username", &j_username) ||
             !json_object_object_get_ex(jobj, "password", &j_password)) {
@@ -141,47 +166,21 @@ int main(void) {
                 return 0;
         }
 
-        // 2. CSRF Sanitization and Validation
-        csrf_token_sanitized = sanitizec_apply(
-            csrf_token_raw, SANITIZEC_RULE_ALPHANUMERIC_ONLY, &error_message);
-
-        if (!csrf_token_sanitized) {
-                json_object_put(jobj);
-                response_init(&resp, 400);
-#if DEBUG
-                response_append(&resp, error_message
-                                           ? error_message
-                                           : "Unknown sanitization error.");
-                response_append(&resp, "\n[DEBUG] Raw CSRF: ");
-                response_append(&resp, csrf_token_raw);
-#endif
-                response_send(&resp);
-                return 0;
-        }
-
         const char* csrf_err = NULL;
-        if (!csrf_validate_token(csrf_token_sanitized, &csrf_err)) {
+        if (!csrf_validate_token(csrf_token_raw, &csrf_err)) {
                 json_object_put(jobj);
                 response_init(&resp, 400);
+                response_append(&resp, "Invalid CSRF token.");
 #if DEBUG
-                response_append(&resp,
-                                csrf_err ? csrf_err : "Invalid CSRF token.");
                 response_append(&resp, "\n[DEBUG] Raw CSRF: ");
                 response_append(&resp, csrf_token_raw);
-                response_append(&resp, "\n[DEBUG] Sanitized CSRF: ");
-                response_append(&resp, csrf_token_sanitized);
 #endif
-                free(csrf_token_sanitized);// Cleanup
                 response_send(&resp);
                 return 0;
         }
 
-        // CSRF is valid. Cleanup the input JSON and the sanitized token.
         json_object_put(jobj);
-        free(csrf_token_sanitized);
-        csrf_token_sanitized = NULL;
 
-        // 3. Username and Password Validation (Business Logic)
         if (strlen(password) < 6) {
                 response_init(&resp, 400);
                 response_append(&resp,
@@ -208,7 +207,6 @@ int main(void) {
                 return 0;
         }
 
-        // 4. Final Username Sanitization
         username_sanitized = sanitizec_apply(
             username_raw, SANITIZEC_RULE_ALPHANUMERIC_ONLY, &error_message);
 
@@ -225,7 +223,20 @@ int main(void) {
                 return 0;
         }
 
-        // 5. Password Hashing
+        if (strcmp(username_raw, username_sanitized) != 0) {
+                response_init(&resp, 400);
+                response_append(&resp, "Username must be alphanumeric.");
+#if DEBUG
+                response_append(&resp, "\n[DEBUG] Raw username: ");
+                response_append(&resp, username_raw);
+                response_append(&resp, "\n[DEBUG] Sanitized username: ");
+                response_append(&resp, username_sanitized);
+#endif
+                free(username_sanitized);
+                response_send(&resp);
+                return 0;
+        }
+
         const char* hash_err = NULL;
         password_hash        = hash_password(password, &hash_err);
 
@@ -239,12 +250,11 @@ int main(void) {
                 response_append(&resp, "\n[DEBUG] Password: ");
                 response_append(&resp, password);
 #endif
-                free(username_sanitized);// Cleanup
+                free(username_sanitized);
                 response_send(&resp);
                 return 0;
         }
 
-        // 6. Database Operations
         user_t user = {
             .id            = -1,
             .username      = username_sanitized,
@@ -260,11 +270,12 @@ int main(void) {
                 response_append(&resp, db_err);
                 response_append(&resp, "\n[DEBUG] DB_PATH: " DB_PATH);
 #endif
-                free(password_hash);     // Cleanup
-                free(username_sanitized);// Cleanup
+                free(password_hash);
+                free(username_sanitized);
                 response_send(&resp);
                 return 0;
         }
+
         user_t* inserted_user = NULL;
         char* user_insert_err = NULL;
 
@@ -277,9 +288,11 @@ int main(void) {
 
         if (rc != 0) {
                 response_init(&resp, 400);
-
                 const char* response_msg = "User registration failed.";
-
+                if (user_insert_err &&
+                    strstr(user_insert_err, "UNIQUE constraint failed")) {
+                        response_msg = "Username already exists.";
+                }
 #if DEBUG
                 if (user_insert_err != NULL) {
                         response_msg = user_insert_err;
@@ -289,22 +302,17 @@ int main(void) {
                 response_append(&resp, "\n[DEBUG] Password (hashed): ");
                 response_append(&resp, user.password_hash);
 #endif
-
                 response_append(&resp, response_msg);
-
                 if (inserted_user) {
                         user_free(inserted_user);
                 }
-
                 if (user_insert_err) {
                         free(user_insert_err);
                 }
-
                 response_send(&resp);
                 return 0;
         }
 
-        // 7. Success
         if (inserted_user) {
                 user_free(inserted_user);
         }
