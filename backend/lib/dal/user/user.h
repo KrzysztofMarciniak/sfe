@@ -1,91 +1,49 @@
-/**
-
-    @file user.h
-
-    @brief Data access functions for user persistence.
-    */
-
 #ifndef DAL_USER_H
 #define DAL_USER_H
 
 #include <sqlite3.h>
 
 #include "/app/backend/lib/models/user_model/user_model.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define USER_SUCCESS 0
-#define USER_ERROR 1
+#include "/app/backend/lib/result/result.h"
 
 /**
-
-    @brief Insert a new user into the database.
-
-    @param db SQLite database connection.
-
-    @param user Pointer to user_t with username and password_hash filled.
-
-    @param out_user Pointer to user_t* where the inserted user (with generated
-   ID)
-
-    will be stored on success (caller must free).
-
-    @param errmsg Pointer to char* where a newly allocated error message will be
-
-    stored on failure (caller MUST free), or NULL on success.
-
-    @return 0 on success (USER_SUCCESS), 1 on failure (USER_ERROR).
-    */
-int user_insert(sqlite3* db, const user_t* user, user_t** out_user,
-                char** errmsg);
+ * @file user.h
+ * @brief Data access functions for user persistence
+ */
 
 /**
-
-    @brief Fetch a user from the database by ID.
-
-    @param db SQLite database connection.
-
-    @param id ID to search for.
-
-    @param out_user Pointer to user_t* where the fetched user will be stored on
-
-    success (caller must free), or NULL on not found.
-
-    @param errmsg Pointer to char* where a newly allocated error message will be
-
-    stored on failure (caller MUST free), or NULL on success.
-
-    @return 0 on success (USER_SUCCESS), 1 on failure or if user is not found
-   (USER_ERROR).
-    */
-int user_fetch_by_id(sqlite3* db, int id, user_t** out_user, char** errmsg);
+ * @brief Insert a new user into the database
+ * @param db SQLite database connection
+ * @param user Pointer to user_t with username and password_hash filled
+ * @param out_user Pointer to store inserted user with generated ID (caller must
+ * free)
+ * @return result_t indicating success or failure
+ */
+result_t user_insert(sqlite3* db, const user_t* user, user_t** out_user);
 
 /**
+ * @brief Fetch a user from the database by ID
+ * @param db SQLite database connection
+ * @param id ID to search for
+ * @param out_user Pointer to store fetched user (caller must free)
+ * @return result_t indicating success or failure
+ */
+result_t user_fetch_by_id(sqlite3* db, int id, user_t** out_user);
 
-    @brief Fetch a user from the database by username.
-
-    @param db SQLite database connection.
-
-    @param username Username to search for.
-
-    @param out_user Pointer to user_t* where the fetched user will be stored on
-
-    success (caller must free), or NULL on not found.
-
-    @param errmsg Pointer to char* where a newly allocated error message will be
-
-    stored on failure (caller MUST free), or NULL on success.
-
-    @return 0 on success (USER_SUCCESS), 1 on failure or if user is not found
-   (USER_ERROR).
-    */
-int user_fetch_by_username(sqlite3* db, const char* username, user_t** out_user,
-                           char** errmsg);
-
-#ifdef __cplusplus
-}
-#endif
+/**
+ * @brief Fetch a user from the database by username
+ * @param db SQLite database connection
+ * @param username Username to search for
+ * @param out_user Pointer to store fetched user (caller must free)
+ * @return result_t indicating success or failure
+ */
+result_t user_fetch_by_username(sqlite3* db, const char* username,
+                                user_t** out_user);
+// Library-specific error codes (1300-1399)
+#define ERR_INVALID_INPUT 1301
+#define ERR_SQL_PREPARE_FAIL 1302
+#define ERR_SQL_BIND_FAIL 1303
+#define ERR_SQL_STEP_FAIL 1304
+#define ERR_USER_NOT_FOUND 1305
 
 #endif// DAL_USER_H

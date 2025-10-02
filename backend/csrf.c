@@ -1,19 +1,19 @@
 #include "lib/csrf/csrf.h"
 
 #include <json-c/json.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
+#include "/app/backend/lib/result/result.h"
 #include "lib/read_post_data/read_post_data.h"
 #include "lib/response/response.h"
 
 #define DEBUG 0
 
+/**
+ * @brief Main function to handle CSRF token generation and validation
+ * @return 0 on completion
+ */
 int main(void) {
         response_t resp;
-        const char* errmsg = NULL;
         const char* method = getenv("REQUEST_METHOD");
 
         if (!method) {
@@ -24,12 +24,17 @@ int main(void) {
         }
 
         if (strcmp(method, "GET") == 0) {
-                char* token = csrf_generate_token(&errmsg);
-                if (!token) {
+                char* token  = NULL;
+                result_t res = csrf_generate_token(&token);
+                if (res.code != RESULT_SUCCESS) {
                         response_init(&resp, 500);
 #if DEBUG
-                        if (errmsg) {
-                                response_append(&resp, errmsg);
+                        struct json_object* res_json = result_to_json(&res);
+                        if (res_json) {
+                                response_append(
+                                    &resp,
+                                    json_object_to_json_string(res_json));
+                                json_object_put(res_json);
                         } else {
                                 response_append(
                                     &resp, "Failed to generate CSRF token.");
@@ -39,31 +44,50 @@ int main(void) {
                                         "Failed to generate CSRF token.");
 #endif
                         response_send(&resp);
+                        free_result(&res);
                         return 0;
                 }
 
                 response_init(&resp, 200);
-                struct json_object* token_obj = json_object_new_string(token);
                 struct json_object* response_obj = json_object_new_object();
-                json_object_object_add(response_obj, "token", token_obj);
-                printf("Status: 200 OK\r\n");
-                printf("Content-Type: application/json\r\n\r\n");
-                printf("%s\n", json_object_to_json_string(response_obj));
+                json_object_object_add(
+                    response_obj, "token",
+                    json_object_new_string(token ? token : ""));
+                response_append(&resp,
+                                json_object_to_json_string(response_obj));
 
                 json_object_put(response_obj);
                 free(token);
+                free_result(&res);
+                response_send(&resp);
                 return 0;
         }
 
         if (strcmp(method, "POST") == 0) {
-                char* body = read_post_data();
-                if (!body) {
+                char* body  = NULL;
+                result_t rc = read_post_data(&body);
+                if (rc.code != RESULT_SUCCESS) {
+#if DEBUG
+                        struct json_object* json_err = result_to_json(&rc);
+                        char* json_str = json_object_to_json_string(json_err);
                         response_init(&resp, 400);
-                        response_append(&resp, "Missing or invalid POST body.");
+                        response_append(&resp, json_str);
+                        json_object_put(json_err);
+#else
+                        if (rc.error.code == ERR_INVALID_CONTENT_LENGTH) {
+                                response_init(&resp, 400);
+                                response_append(
+                                    &resp, "Invalid Content Length for POST");
+                        } else if (rc.error.code == ERR_MEMORY_ALLOC_FAIL ||
+                                   rc.error.code == ERR_READ_FAIL) {
+                                response_init(&resp, 500);
+                                response_append(&resp, "Internal Server Error");
+                        }
+#endif
                         response_send(&resp);
+                        free_result(&rc);
                         return 0;
                 }
-
                 struct json_object* jobj = json_tokener_parse(body);
                 free(body);
                 if (!jobj) {
@@ -92,27 +116,67 @@ int main(void) {
                         return 0;
                 }
 
-                bool valid = csrf_validate_token(token, &errmsg);
+                result_t res = csrf_validate_token(token);
                 json_object_put(jobj);
-
-                if (valid) {
+                if (res.code == RESULT_SUCCESS) {
                         response_init(&resp, 200);
                         response_append(&resp, "CSRF token is valid.");
-                        response_send(&resp);
                 } else {
-                        response_init(&resp, 400);
 #if DEBUG
-                        if (errmsg) {
-                                response_append(&resp, errmsg);
-                        } else {
-                                response_append(
-                                    &resp, "CSRF token validation failed.");
-                        }
+                        struct json_object* res_json = result_to_json(&res);
+                        char* json_str =
+                            res_json ? json_object_to_json_string(res_json)
+                                     : "JSON conversion failed";
+                        response_init(&resp, 400);
+                        response_append(&resp, json_str);
+                        if (res_json) json_object_put(res_json);
 #else
-                        response_append(&resp, "CSRF token validation failed.");
+                        switch (res.error.code) {
+                                case ERR_NULL_TOKEN:
+                                        response_init(&resp, 400);
+                                        response_append(&resp,
+                                                        "CSRF token is null");
+                                        break;
+                                case ERR_HEX_DECODE_FAIL:
+                                        response_init(&resp, 500);
+                                        response_append(
+                                            &resp, "Internal Server Error");
+                                        break;
+                                case ERR_TOKEN_FUTURE_TIMESTAMP:
+                                        response_init(&resp, 400);
+                                        response_append(&resp,
+                                                        "CSRF token timestamp "
+                                                        "is in the future");
+                                        break;
+                                case ERR_TOKEN_EXPIRED:
+                                        response_init(&resp, 400);
+                                        response_append(
+                                            &resp, "CSRF token has expired");
+                                        break;
+                                case ERR_CSRF_SECRET_EMPTY:
+                                        response_init(&resp, 500);
+                                        response_append(
+                                            &resp, "Internal Server Error");
+                                        break;
+                                case ERR_HMAC_GENERATION_FAIL:
+                                case ERR_HMAC_LENGTH_MISMATCH:
+                                case ERR_HMAC_MISMATCH:
+                                case ERR_SANITIZATION_FAIL:
+                                case ERR_TOKEN_LENGTH_MISMATCH:
+                                        response_init(&resp, 500);
+                                        response_append(
+                                            &resp, "Internal Server Error");
+                                        break;
+                                default:
+                                        response_init(&resp, 500);
+                                        response_append(
+                                            &resp, "Internal Server Error");
+                                        break;
+                        }
 #endif
                         response_send(&resp);
                 }
+                free_result(&res);
                 return 0;
         }
 

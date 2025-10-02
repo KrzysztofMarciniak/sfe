@@ -4,7 +4,7 @@
 set -eu
 
 # List of test modules
-tests="test csrf register"
+tests="test csrf pass register login"
 
 for t in $tests; do
     script="tests/$t/main.sh"
