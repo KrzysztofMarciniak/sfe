@@ -29,43 +29,17 @@
 #define DB_PATH "/data/sfe.db"
 #define DEBUG 0
 
-/**
- * @brief Validate a username string.
- *
- * Checks that the username is not empty and does not exceed the maximum
- * allowed length.
- *
- * @param str The input username string.
- * @return NULL if the username is valid, otherwise an error message string.
- */
 const char* validate_username(const char* str) {
         if (!str || *str == '\0') {
                 return "Username is empty.";
         }
-
         size_t len = strlen(str);
         if (len > 12) {
                 return "Username too long (12 characters max).";
         }
-
         return NULL;
 }
 
-/**
- * @brief Main entry point for the registration CGI program.
- *
- * Workflow:
- *   1. Enforce POST method.
- *   2. Parse and validate JSON body (csrf, username, password).
- *   3. Validate CSRF token.
- *   4. Validate password length and username format.
- *   5. Sanitize username and reject if modified.
- *   6. Hash the password securely.
- *   7. Insert the new user record into the database.
- *   8. Return appropriate HTTP response codes and messages.
- *
- * @return Exit code (0 on normal completion).
- */
 int main(void) {
         const char* method       = getenv("REQUEST_METHOD");
         char* username_sanitized = NULL;
@@ -75,10 +49,10 @@ int main(void) {
 
         if (!method || strcmp(method, "POST") != 0) {
                 response_init(&resp, 405);
-                response_append(&resp, "Method Not Allowed");
+                response_append_str(&resp, "Method Not Allowed");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Method: ");
-                response_append(&resp, method ? method : "(null)");
+                response_append_str(&resp, "\n[DEBUG] Method: ");
+                response_append_str(&resp, method ? method : "(null)");
 #endif
                 response_send(&resp);
                 return 0;
@@ -91,22 +65,23 @@ int main(void) {
                     res.error.code == ERR_INVALID_CONTENT_LENGTH ? 400 : 500);
 #if DEBUG
                 struct json_object* res_json = result_to_json(&res);
-                char* json_str = res_json ? json_object_to_json_string(res_json)
-                                          : "JSON conversion failed";
-                response_append(&resp, json_str);
-                if (res_json) json_object_put(res_json);
+                if (res_json) {
+                        response_append_json(&resp, res_json);
+                        json_object_put(res_json);
+                } else {
+                        response_append_str(&resp, "JSON conversion failed");
+                }
 #else
                 switch (res.error.code) {
                         case ERR_INVALID_CONTENT_LENGTH:
-                                response_append(
+                                response_append_str(
                                     &resp, "Invalid Content Length for POST");
                                 break;
                         case ERR_MEMORY_ALLOC_FAIL:
                         case ERR_READ_FAIL:
-                                response_append(&resp, "Internal Server Error");
-                                break;
                         default:
-                                response_append(&resp, "Internal Server Error");
+                                response_append_str(&resp,
+                                                    "Internal Server Error");
                                 break;
                 }
 #endif
@@ -117,16 +92,17 @@ int main(void) {
 
         struct json_object* jobj = json_tokener_parse(body);
 #if DEBUG
-        response_append(&resp, "\n[DEBUG] Raw JSON body: ");
-        response_append(&resp, body);
+        response_append_str(&resp, "\n[DEBUG] Raw JSON body: ");
+        response_append_str(&resp, body);
 #endif
         free(body);
 
         if (!jobj) {
                 response_init(&resp, 400);
-                response_append(&resp, "Malformed JSON");
+                response_append_str(&resp, "Malformed JSON");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] json_tokener_parse failed");
+                response_append_str(&resp,
+                                    "\n[DEBUG] json_tokener_parse failed");
 #endif
                 response_send(&resp);
                 return 0;
@@ -140,21 +116,21 @@ int main(void) {
             !json_object_object_get_ex(jobj, "password", &j_password)) {
                 json_object_put(jobj);
                 response_init(&resp, 400);
-                response_append(&resp,
-                                "Missing csrf, username, or password field.");
+                response_append_str(
+                    &resp, "Missing csrf, username, or password field.");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Extracted fields:\n");
-                response_append(&resp, "csrf: ");
-                response_append(
+                response_append_str(&resp, "\n[DEBUG] Extracted fields:\n");
+                response_append_str(&resp, "csrf: ");
+                response_append_str(
                     &resp, j_csrf ? json_object_get_string(j_csrf) : "(null)");
-                response_append(&resp, "\nusername: ");
-                response_append(&resp, j_username
-                                           ? json_object_get_string(j_username)
-                                           : "(null)");
-                response_append(&resp, "\npassword: ");
-                response_append(&resp, j_password
-                                           ? json_object_get_string(j_password)
-                                           : "(null)");
+                response_append_str(&resp, "\nusername: ");
+                response_append_str(
+                    &resp,
+                    j_username ? json_object_get_string(j_username) : "(null)");
+                response_append_str(&resp, "\npassword: ");
+                response_append_str(
+                    &resp,
+                    j_password ? json_object_get_string(j_password) : "(null)");
 #endif
                 response_send(&resp);
                 return 0;
@@ -167,16 +143,17 @@ int main(void) {
         if (!csrf_token_raw || !username_raw || !password) {
                 json_object_put(jobj);
                 response_init(&resp, 400);
-                response_append(
+                response_append_str(
                     &resp, "Missing or invalid csrf, username, or password.");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] csrf: ");
-                response_append(&resp,
-                                csrf_token_raw ? csrf_token_raw : "(null)");
-                response_append(&resp, "\nusername: ");
-                response_append(&resp, username_raw ? username_raw : "(null)");
-                response_append(&resp, "\npassword: ");
-                response_append(&resp, password ? password : "(null)");
+                response_append_str(&resp, "\n[DEBUG] csrf: ");
+                response_append_str(&resp,
+                                    csrf_token_raw ? csrf_token_raw : "(null)");
+                response_append_str(&resp, "\nusername: ");
+                response_append_str(&resp,
+                                    username_raw ? username_raw : "(null)");
+                response_append_str(&resp, "\npassword: ");
+                response_append_str(&resp, password ? password : "(null)");
 #endif
                 response_send(&resp);
                 return 0;
@@ -190,47 +167,52 @@ int main(void) {
                     csrf_res.error.code == ERR_CSRF_SECRET_EMPTY ? 500 : 400);
 #if DEBUG
                 struct json_object* res_json = result_to_json(&csrf_res);
-                char* json_str = res_json ? json_object_to_json_string(res_json)
-                                          : "JSON conversion failed";
-                response_append(&resp, json_str);
-                if (res_json) json_object_put(res_json);
+                if (res_json) {
+                        response_append_json(&resp, res_json);
+                        json_object_put(res_json);
+                } else {
+                        response_append_str(&resp, "JSON conversion failed");
+                }
 #else
                 switch (csrf_res.error.code) {
                         case ERR_NULL_TOKEN:
-                                response_append(&resp, "CSRF token is null");
+                                response_append_str(&resp,
+                                                    "CSRF token is null");
                                 break;
                         case ERR_SANITIZATION_FAIL:
-                                response_append(
+                                response_append_str(
                                     &resp, "CSRF token sanitization failed");
                                 break;
                         case ERR_TOKEN_LENGTH_MISMATCH:
-                                response_append(&resp,
-                                                "CSRF token length mismatch");
+                                response_append_str(
+                                    &resp, "CSRF token length mismatch");
                                 break;
                         case ERR_HEX_DECODE_FAIL:
-                                response_append(
+                                response_append_str(
                                     &resp, "CSRF token hex decoding failed");
                                 break;
                         case ERR_TOKEN_FUTURE_TIMESTAMP:
-                                response_append(
+                                response_append_str(
                                     &resp,
                                     "CSRF token timestamp is in the future");
                                 break;
                         case ERR_TOKEN_EXPIRED:
-                                response_append(&resp,
-                                                "CSRF token has expired");
+                                response_append_str(&resp,
+                                                    "CSRF token has expired");
                                 break;
                         case ERR_CSRF_SECRET_EMPTY:
-                                response_append(&resp, "Internal Server Error");
+                                response_append_str(&resp,
+                                                    "Internal Server Error");
                                 break;
                         case ERR_HMAC_GENERATION_FAIL:
                         case ERR_HMAC_LENGTH_MISMATCH:
                         case ERR_HMAC_MISMATCH:
-                                response_append(
+                                response_append_str(
                                     &resp, "CSRF token HMAC validation failed");
                                 break;
                         default:
-                                response_append(&resp, "Internal Server Error");
+                                response_append_str(&resp,
+                                                    "Internal Server Error");
                                 break;
                 }
 #endif
@@ -243,13 +225,13 @@ int main(void) {
 
         if (strlen(password) < 6) {
                 response_init(&resp, 400);
-                response_append(&resp,
-                                "Password must be at least 6 characters.");
+                response_append_str(&resp,
+                                    "Password must be at least 6 characters.");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Username: ");
-                response_append(&resp, username_raw);
-                response_append(&resp, "\n[DEBUG] Password: ");
-                response_append(&resp, password);
+                response_append_str(&resp, "\n[DEBUG] Username: ");
+                response_append_str(&resp, username_raw);
+                response_append_str(&resp, "\n[DEBUG] Password: ");
+                response_append_str(&resp, password);
 #endif
                 response_send(&resp);
                 return 0;
@@ -258,10 +240,10 @@ int main(void) {
         const char* validation_err = validate_username(username_raw);
         if (validation_err) {
                 response_init(&resp, 400);
-                response_append(&resp, validation_err);
+                response_append_str(&resp, validation_err);
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Username: ");
-                response_append(&resp, username_raw);
+                response_append_str(&resp, "\n[DEBUG] Username: ");
+                response_append_str(&resp, username_raw);
 #endif
                 response_send(&resp);
                 return 0;
@@ -271,10 +253,10 @@ int main(void) {
             username_raw, SANITIZEC_RULE_ALPHANUMERIC_ONLY, NULL);
         if (!username_sanitized) {
                 response_init(&resp, 400);
-                response_append(&resp, "Username sanitization failed");
+                response_append_str(&resp, "Username sanitization failed");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Raw username: ");
-                response_append(&resp, username_raw);
+                response_append_str(&resp, "\n[DEBUG] Raw username: ");
+                response_append_str(&resp, username_raw);
 #endif
                 response_send(&resp);
                 return 0;
@@ -282,12 +264,12 @@ int main(void) {
 
         if (strcmp(username_raw, username_sanitized) != 0) {
                 response_init(&resp, 400);
-                response_append(&resp, "Username must be alphanumeric.");
+                response_append_str(&resp, "Username must be alphanumeric.");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] Raw username: ");
-                response_append(&resp, username_raw);
-                response_append(&resp, "\n[DEBUG] Sanitized username: ");
-                response_append(&resp, username_sanitized);
+                response_append_str(&resp, "\n[DEBUG] Raw username: ");
+                response_append_str(&resp, username_raw);
+                response_append_str(&resp, "\n[DEBUG] Sanitized username: ");
+                response_append_str(&resp, username_sanitized);
 #endif
                 free(username_sanitized);
                 response_send(&resp);
@@ -299,15 +281,17 @@ int main(void) {
                 response_init(&resp, 500);
 #if DEBUG
                 struct json_object* res_json = result_to_json(&hash_res);
-                char* json_str = res_json ? json_object_to_json_string(res_json)
-                                          : "JSON conversion failed";
-                response_append(&resp, json_str);
-                if (res_json) json_object_put(res_json);
+                if (res_json) {
+                        response_append_json(&resp, res_json);
+                        json_object_put(res_json);
+                } else {
+                        response_append_str(&resp, "JSON conversion failed");
+                }
 #else
                 switch (hash_res.error.code) {
                         case ERR_NULL_INPUT:
-                                response_append(&resp,
-                                                "Password cannot be empty");
+                                response_append_str(&resp,
+                                                    "Password cannot be empty");
                                 break;
                         case ERR_SALT_GENERATION_FAIL:
                         case ERR_HASHING_FAIL:
@@ -315,10 +299,9 @@ int main(void) {
                         case ERR_INVALID_HASH_FORMAT:
                         case ERR_INVALID_ITERATION_COUNT:
                         case ERR_HEX_DECODE_FAIL:
-                                response_append(&resp, "Internal Server Error");
-                                break;
                         default:
-                                response_append(&resp, "Internal Server Error");
+                                response_append_str(&resp,
+                                                    "Internal Server Error");
                                 break;
                 }
 #endif
@@ -337,11 +320,11 @@ int main(void) {
         sqlite3* db = NULL;
         if (sqlite3_open(DB_PATH, &db) != SQLITE_OK) {
                 response_init(&resp, 500);
-                response_append(&resp, "Internal Server Error");
+                response_append_str(&resp, "Internal Server Error");
 #if DEBUG
-                response_append(&resp, "\n[DEBUG] DB error: ");
-                response_append(&resp, sqlite3_errmsg(db));
-                response_append(&resp, "\n[DEBUG] DB_PATH: " DB_PATH);
+                response_append_str(&resp, "\n[DEBUG] DB error: ");
+                response_append_str(&resp, sqlite3_errmsg(db));
+                response_append_str(&resp, "\n[DEBUG] DB_PATH: " DB_PATH);
 #endif
                 sqlite3_close(db);
                 free(password_hash);
@@ -358,37 +341,40 @@ int main(void) {
         free(username_sanitized);
 
         if (user_res.code != RESULT_SUCCESS) {
-                response_init(
-                    &resp, user_res.error.code == ERR_SQL_PREPARE_FAIL ||
-                                   user_res.error.code == ERR_SQL_STEP_FAIL ||
-                                   user_res.error.code == ERR_SQL_BIND_FAIL
-                               ? 500
-                               : 400);
+                response_init(&resp,
+                              (user_res.error.code == ERR_SQL_PREPARE_FAIL ||
+                               user_res.error.code == ERR_SQL_STEP_FAIL ||
+                               user_res.error.code == ERR_SQL_BIND_FAIL)
+                                  ? 500
+                                  : 400);
 #if DEBUG
                 struct json_object* res_json = result_to_json(&user_res);
-                char* json_str = res_json ? json_object_to_json_string(res_json)
-                                          : "JSON conversion failed";
-                response_append(&resp, json_str);
-                if (res_json) json_object_put(res_json);
+                if (res_json) {
+                        response_append_json(&resp, res_json);
+                        json_object_put(res_json);
+                } else {
+                        response_append_str(&resp, "JSON conversion failed");
+                }
 #else
                 switch (user_res.error.code) {
                         case ERR_SQL_PREPARE_FAIL:
                         case ERR_SQL_STEP_FAIL:
                         case ERR_SQL_BIND_FAIL:
-                                response_append(&resp, "Internal Server Error");
+                                response_append_str(&resp,
+                                                    "Internal Server Error");
                                 break;
                         case ERR_USER_NOT_FOUND:
-                                response_append(&resp,
-                                                "User registration failed");
+                                response_append_str(&resp,
+                                                    "User registration failed");
                                 break;
                         default:
                                 if (user_res.error.message &&
                                     strstr(user_res.error.message,
                                            "UNIQUE constraint failed")) {
-                                        response_append(
+                                        response_append_str(
                                             &resp, "Username already exists");
                                 } else {
-                                        response_append(
+                                        response_append_str(
                                             &resp, "User registration failed");
                                 }
                                 break;
@@ -403,10 +389,10 @@ int main(void) {
         if (inserted_user) user_free(inserted_user);
 
         response_init(&resp, 201);
-        response_append(&resp, "User registered successfully.");
+        response_append_str(&resp, "User registered successfully.");
 #if DEBUG
-        response_append(&resp, "\n[DEBUG] Username: ");
-        response_append(&resp, user.username);
+        response_append_str(&resp, "\n[DEBUG] Username: ");
+        response_append_str(&resp, user.username);
 #endif
         response_send(&resp);
         return 0;

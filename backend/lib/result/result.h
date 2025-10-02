@@ -182,4 +182,5 @@ static inline struct json_object* result_to_json(const result_t* res) {
 
 #define ERR_MEMORY_ALLOC_FAIL 999
 #define ERR_HEX_DECODE_FAIL 998
+#define ERR_TEST_FAIL 9999
 #endif /* RESULT_H_ */

@@ -18,19 +18,19 @@ int main(void) {
 
         if (!method) {
                 response_init(&my_response, 400);
-                response_append(&my_response,
-                                "Bad Request: Missing REQUEST_METHOD");
+                response_append_str(&my_response,
+                                    "Bad Request: Missing REQUEST_METHOD");
                 response_send(&my_response);
                 return 1;
         }
 
         if (strcmp(method, "GET") == 0) {
                 response_init(&my_response, 200);
-                response_append(&my_response, "Hello, World");
+                response_append_str(&my_response, "Hello, World");
                 response_send(&my_response);
         } else {
                 response_init(&my_response, 405);
-                response_append(&my_response, "Method Not Allowed");
+                response_append_str(&my_response, "Method Not Allowed");
                 response_send(&my_response);
         }
 
