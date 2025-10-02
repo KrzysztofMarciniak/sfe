@@ -163,7 +163,7 @@ result_t csrf_validate_token(const char* token) {
         if (!token_sanitized) {
                 result_t res =
                     result_critical_failure("CSRF token sanitization failed",
-                                            NULL, ERR_SANITIZATION_FAIL);
+                                            NULL, ERR_CSRF_SANITIZATION_FAIL);
                 return res;
         }
 

@@ -138,20 +138,26 @@ int main(void) {
                                                     "JSON conversion failed.");
                         }
 #else
-                        // Map errors to proper codes/messages
                         switch (res.error.code) {
-                                case ERR_NULL_TOKEN:
-                                case ERR_TOKEN_FUTURE_TIMESTAMP:
-                                case ERR_TOKEN_EXPIRED:
+                                case ERR_TOKEN_LENGTH_MISMATCH:
                                         response_init(&resp, 400);
+                                        response_append_str(
+                                            &resp, "Token Length Mismatch.");
+                                case ERR_NULL_TOKEN:
+                                case ERR_TOKEN_EXPIRED:
+                                case ERR_TOKEN_FUTURE_TIMESTAMP:
+                                case ERR_CSRF_SECRET_EMPTY:
+                                        response_init(&resp, 400);
+                                        response_append_str(
+                                            &resp, "Invalid csrf Token.");
+
                                         break;
                                 default:
                                         response_init(&resp, 500);
+                                        response_append_str(
+                                            &resp, "Internal Server Error");
                                         break;
                         }
-                        response_append_str(
-                            &resp, res.error.message ? res.error.message
-                                                     : "Internal Server Error");
 #endif
                         response_send(&resp);
                         response_free(&resp);
@@ -161,7 +167,6 @@ int main(void) {
                 return 0;
         }
 
-        // Unsupported method
         response_init(&resp, 405);
         response_append_str(&resp, "Method Not Allowed");
         response_send(&resp);

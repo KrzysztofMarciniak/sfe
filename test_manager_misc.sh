@@ -1,5 +1,4 @@
 #!/bin/sh
-
 set -eu
 
 BASE_URL="http://localhost:8080/api"
@@ -15,8 +14,9 @@ run_get() {
         -w "\n[STATUS]%{http_code}" \
         "$BASE_URL/$url")
 
-    body=$(printf '%s' "$resp" | sed -n '1,/^\\[STATUS]/p' | sed '$d')
-    status=$(printf '%s' "$resp" | sed -n 's/^\[STATUS]//p')
+    # Extract body and status
+    body=$(printf '%s' "$resp" | sed '$d')
+    status=$(printf '%s' "$resp" | tail -n1 | sed 's/^\[STATUS]//')
 
     echo "Expected body:   $expected_body"
     echo "Gotten body:     $body"
@@ -45,10 +45,11 @@ run_post() {
         -w "\n[STATUS]%{http_code}" \
         "$BASE_URL/$url")
 
-   body=$(printf '%s' "$resp" | sed -n '1,/^\[STATUS]/p' | sed '$d')
-    status=$(printf '%s' "$resp" | sed -n 's/^\[STATUS]//p')
+    body=$(printf '%s' "$resp" | sed '$d')
+    status=$(printf '%s' "$resp" | tail -n1 | sed 's/^\[STATUS]//')
 
-   messages=$(printf '%s' "$body" | jq -c '.messages' 2>/dev/null || echo "(no messages)")
+    # Extract messages array if present
+    messages=$(printf '%s' "$body" | jq -c '.messages' 2>/dev/null || echo "(no messages)")
 
     echo "Expected messages: $expected_messages"
     echo "Gotten messages:  $messages"

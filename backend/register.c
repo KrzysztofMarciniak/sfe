@@ -179,7 +179,7 @@ int main(void) {
                                 response_append_str(&resp,
                                                     "CSRF token is null");
                                 break;
-                        case ERR_SANITIZATION_FAIL:
+                        case ERR_CSRF_SANITIZATION_FAIL:
                                 response_append_str(
                                     &resp, "CSRF token sanitization failed");
                                 break;
