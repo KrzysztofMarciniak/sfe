@@ -75,44 +75,45 @@ static void result_add_extra(result_t* res, const char* format, ...) {
         va_end(args);
 }
 
-/**
- * @brief Create a failure result
- * @param message Error message
- * @param extra_info Additional error information
- * @param error_code Library-specific error code
- * @return result_t with failure status
- */
-static inline result_t result_failure(const char* message,
-                                      const char* extra_info, int error_code) {
-        result_t res = {
-            .code  = RESULT_FAILURE,
-            .error = {.code        = error_code,
-                      .message     = message ? strdup(message) : NULL,
-                      .failed_file = strdup(__FILE__),
-                      .failed_func = strdup(__func__),
-                      .extra_info  = extra_info ? strdup(extra_info) : NULL}};
+/* Implementation functions that accept caller file/func */
+static inline result_t result_failure_impl(const char* message,
+                                           const char* extra_info,
+                                           int error_code,
+                                           const char* failed_file,
+                                           const char* failed_func) {
+        result_t res;
+        res.code              = RESULT_FAILURE;
+        res.error.code        = error_code;
+        res.error.message     = message ? strdup(message) : NULL;
+        res.error.failed_file = failed_file ? strdup(failed_file) : NULL;
+        res.error.failed_func = failed_func ? strdup(failed_func) : NULL;
+        res.error.extra_info  = extra_info ? strdup(extra_info) : NULL;
         return res;
 }
 
-/**
- * @brief Create a critical failure result
- * @param message Error message
- * @param extra_info Additional error information
- * @param error_code Library-specific error code
- * @return result_t with critical failure status
- */
-static inline result_t result_critical_failure(const char* message,
-                                               const char* extra_info,
-                                               int error_code) {
-        result_t res = {
-            .code  = RESULT_CRITICAL_FAILURE,
-            .error = {.code        = error_code,
-                      .message     = message ? strdup(message) : NULL,
-                      .failed_file = strdup(__FILE__),
-                      .failed_func = strdup(__func__),
-                      .extra_info  = extra_info ? strdup(extra_info) : NULL}};
+static inline result_t result_critical_failure_impl(const char* message,
+                                                    const char* extra_info,
+                                                    int error_code,
+                                                    const char* failed_file,
+                                                    const char* failed_func) {
+        result_t res;
+        res.code              = RESULT_CRITICAL_FAILURE;
+        res.error.code        = error_code;
+        res.error.message     = message ? strdup(message) : NULL;
+        res.error.failed_file = failed_file ? strdup(failed_file) : NULL;
+        res.error.failed_func = failed_func ? strdup(failed_func) : NULL;
+        res.error.extra_info  = extra_info ? strdup(extra_info) : NULL;
         return res;
 }
+
+/* Macros that pass the caller's __FILE__ and __func__ */
+#define result_failure(message, extra_info, error_code)                      \
+        result_failure_impl((message), (extra_info), (error_code), __FILE__, \
+                            __func__)
+
+#define result_critical_failure(message, extra_info, error_code)            \
+        result_critical_failure_impl((message), (extra_info), (error_code), \
+                                     __FILE__, __func__)
 
 /**
  * @brief Free resources allocated in a result
