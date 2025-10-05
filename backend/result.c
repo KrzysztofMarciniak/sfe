@@ -6,9 +6,16 @@
 #define DEBUG 1
 
 #if DEBUG
+
 int main(void) {
-        result_t* rc          = test_fail();
+        result_t* rc = test_fail();
+        if (!rc) return 1;
+
         json_object* res_json = result_to_json(rc);
+        if (!res_json) {
+                result_free(rc);
+                return 1;
+        }
 
         response_t resp;
         response_init(&resp, 200);
@@ -18,8 +25,8 @@ int main(void) {
         response_send(&resp);
         response_free(&resp);
 
-        free_result(rc);
-        free(rc);
+        result_free(rc);
+        return 0;
 }
 
 #else
