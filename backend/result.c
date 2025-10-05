@@ -18,7 +18,7 @@ int main(void) {
         }
 
         response_t resp;
-        response_init(&resp, 200);
+        response_init(&resp, 500);
         response_append_json(&resp, res_json);
         json_object_put(res_json);
 
