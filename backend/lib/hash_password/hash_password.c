@@ -1,16 +1,11 @@
 #include "hash_password.h"
 
-// Replaces OpenSSL headers
 #include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Assuming this path is correct for your project's result type
 #include "/app/backend/lib/result/result.h"
-
-// --- Helper functions (bin_to_hex, hex_to_bin) removed as libsodium handles
-// formatting ---
 
 /**
  * @brief Hash a password using libsodium's recommended Argon2id algorithm.
