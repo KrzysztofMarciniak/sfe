@@ -3,7 +3,7 @@
 #include "/app/backend/lib/response/response.h"
 #include "/app/backend/lib/result_test/result_test.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 

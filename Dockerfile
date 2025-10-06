@@ -11,6 +11,7 @@ RUN apk add --no-cache \
     json-c-dev \
     doxygen \
     openssl-dev \
+    libsodium-dev \
     git \
     && rm -rf /var/cache/apk/*
 
@@ -77,6 +78,7 @@ RUN apk add --no-cache \
     sqlite-libs \
     json-c \
     doxygen \
+    libsodium \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app

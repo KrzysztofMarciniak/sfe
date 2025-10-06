@@ -1,46 +1,26 @@
 #include "hash_password.h"
 
-#include <openssl/evp.h>
-#include <openssl/rand.h>
+// Replaces OpenSSL headers
+#include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Assuming this path is correct for your project's result type
 #include "/app/backend/lib/result/result.h"
 
-/**
- * @brief Convert binary data to hexadecimal string
- * @param bin Binary input data
- * @param len Length of binary data
- * @param out Output buffer for hex string
- */
-static void bin_to_hex(const unsigned char* bin, size_t len, char* out) {
-        for (size_t i = 0; i < len; ++i) {
-                sprintf(out + i * 2, "%02x", bin[i]);
-        }
-        out[len * 2] = '\0';
-}
+// --- Helper functions (bin_to_hex, hex_to_bin) removed as libsodium handles
+// formatting ---
 
 /**
- * @brief Convert hexadecimal string to binary data
- * @param hex Hexadecimal input string
- * @param out Output buffer for binary data
- * @param out_len Expected length of output
- * @return 0 on success, -1 on failure
- */
-static int hex_to_bin(const char* hex, unsigned char* out, size_t out_len) {
-        for (size_t i = 0; i < out_len; ++i) {
-                unsigned int byte;
-                if (sscanf(hex + 2 * i, "%2x", &byte) != 1) {
-                        return -1;
-                }
-                out[i] = (unsigned char)byte;
-        }
-        return 0;
-}
-
-/**
- * @brief Hash a password using PBKDF2 with SHA256
+ * @brief Hash a password using libsodium's recommended Argon2id algorithm.
+ *
+ * Libsodium's crypto_pwhash_str() function handles:
+ * 1. Generating a cryptographically secure random salt.
+ * 2. Hashing the password using the default secure algorithm (Argon2id).
+ * 3. Encoding the salt, hash, and cost parameters into a single, compact
+ * string.
+ *
  * @param password Input password to hash
  * @param out_hash Pointer to store the resulting hash string (caller must free)
  * @return result_t indicating success or failure
@@ -54,47 +34,53 @@ result_t* hash_password(const char* password, char** out_hash) {
                 return result_failure("Password is NULL", NULL, ERR_NULL_INPUT);
         }
 
-        unsigned char salt[SALT_LEN];
-        unsigned char hash[HASH_LEN];
-
-        if (RAND_bytes(salt, SALT_LEN) != 1) {
-                result_t* res = result_critical_failure(
-                    "Failed to generate salt", NULL, ERR_SALT_GENERATION_FAIL);
-                result_add_extra(res, "salt_len=%d", SALT_LEN);
-                return res;
+        if (!out_hash) {
+                return result_failure("Output pointer (out_hash) is NULL", NULL,
+                                      ERR_HASH_OUTPUT_PTR_NULL);
         }
 
-        if (PKCS5_PBKDF2_HMAC(password, strlen(password), salt, SALT_LEN,
-                              ITERATIONS, EVP_sha256(), HASH_LEN, hash) != 1) {
-                result_t* res = result_critical_failure("Hashing failed", NULL,
-                                                        ERR_HASHING_FAIL);
+        if (sodium_init() == -1) {
+                return result_critical_failure(
+                    "Libsodium initialization failed", NULL,
+                    ERR_LIBSODIUM_FAIL);
+        }
+
+        char* encoded_hash = malloc(PWHASH_STR_LEN);
+        if (!encoded_hash) {
+                return result_critical_failure("Out of memory for hash string",
+                                               NULL, ERR_MEMORY_ALLOC_FAIL);
+        }
+
+        if (crypto_pwhash_str(encoded_hash, password, strlen(password),
+                              crypto_pwhash_OPSLIMIT_MODERATE,
+                              crypto_pwhash_MEMLIMIT_MODERATE) != 0) {
+                free(encoded_hash);
+                result_t* res =
+                    result_critical_failure("Libsodium password hashing failed",
+                                            NULL, ERR_HASHING_FAIL);
                 result_add_extra(
-                    res,
-                    "password_len=%zu, salt_len=%d, iterations=%d, hash_len=%d",
-                    strlen(password), SALT_LEN, ITERATIONS, HASH_LEN);
+                    res, "password_len=%zu, opslimit=%lu, memlimit=%lu",
+                    strlen(password),
+                    (unsigned long)crypto_pwhash_OPSLIMIT_MODERATE,
+                    (unsigned long)crypto_pwhash_MEMLIMIT_MODERATE);
                 return res;
         }
 
-        char salt_hex[SALT_LEN * 2 + 1];
-        char hash_hex[HASH_LEN * 2 + 1];
-        bin_to_hex(salt, SALT_LEN, salt_hex);
-        bin_to_hex(hash, HASH_LEN, hash_hex);
-
-        char* out = malloc(SALT_LEN * 2 + 1 + 6 + 1 + HASH_LEN * 2 + 1);
-        if (!out) {
-                return result_critical_failure("Out of memory", NULL,
-                                               ERR_MEMORY_ALLOC_FAIL);
-        }
-
-        sprintf(out, "%s$%d$%s", salt_hex, ITERATIONS, hash_hex);
-        *out_hash = out;
+        *out_hash = encoded_hash;
         return result_success();
 }
 
 /**
- * @brief Verify a password against a stored hash
+ * @brief Verify a password against a stored hash using libsodium's function.
+ *
+ * Libsodium's crypto_pwhash_str_verify() handles:
+ * 1. Safely parsing the stored hash string to extract the salt, parameters, and
+ * hash.
+ * 2. Re-hashing the input password using the extracted parameters.
+ * 3. Performing a constant-time comparison against the stored hash.
+ *
  * @param password Input password to verify
- * @param stored_hash Stored hash to compare against
+ * @param stored_hash Stored hash string (in libsodium's encoded format)
  * @return result_t indicating success (match) or failure (mismatch or error)
  */
 result_t* verify_password(const char* password, const char* stored_hash) {
@@ -107,80 +93,17 @@ result_t* verify_password(const char* password, const char* stored_hash) {
                 return res;
         }
 
-        char* copy = strdup(stored_hash);
-        if (!copy) {
-                result_t* res = result_critical_failure("Out of memory", NULL,
-                                                        ERR_MEMORY_ALLOC_FAIL);
-                return res;
+        if (sodium_init() == -1) {
+                return result_critical_failure(
+                    "Libsodium initialization failed", NULL,
+                    ERR_LIBSODIUM_FAIL);
         }
 
-        char* salt_hex = copy;
-        char* iter_str = strchr(salt_hex, '$');
-        if (!iter_str) {
-                result_t* res = result_critical_failure(
-                    "Invalid hash format", NULL, ERR_INVALID_HASH_FORMAT);
-                result_add_extra(res, "stored_hash=%s", stored_hash);
-                free(copy);
-                return res;
-        }
-        *iter_str++ = '\0';
-
-        char* hash_hex = strchr(iter_str, '$');
-        if (!hash_hex) {
-                result_t* res = result_critical_failure(
-                    "Invalid hash format", NULL, ERR_INVALID_HASH_FORMAT);
-                result_add_extra(res, "stored_hash=%s", stored_hash);
-                free(copy);
-                return res;
-        }
-        *hash_hex++ = '\0';
-
-        int iterations = atoi(iter_str);
-        if (iterations <= 0) {
-                result_t* res =
-                    result_critical_failure("Invalid iteration count", NULL,
-                                            ERR_INVALID_ITERATION_COUNT);
-                result_add_extra(res, "iterations=%s", iter_str);
-                free(copy);
-                return res;
-        }
-
-        unsigned char salt[SALT_LEN];
-        unsigned char expected_hash[HASH_LEN];
-        unsigned char actual_hash[HASH_LEN];
-
-        if (hex_to_bin(salt_hex, salt, SALT_LEN) != 0 ||
-            hex_to_bin(hash_hex, expected_hash, HASH_LEN) != 0) {
-                result_t* res = result_critical_failure(
-                    "Failed to decode hex", NULL, ERR_HEX_DECODE_FAIL);
-                result_add_extra(res, "salt_hex=%s, hash_hex=%s", salt_hex,
-                                 hash_hex);
-                free(copy);
-                return res;
-        }
-
-        if (PKCS5_PBKDF2_HMAC(password, strlen(password), salt, SALT_LEN,
-                              iterations, EVP_sha256(), HASH_LEN,
-                              actual_hash) != 1) {
-                result_t* res = result_critical_failure(
-                    "Hashing failed during verification", NULL,
-                    ERR_HASHING_FAIL);
-                result_add_extra(
-                    res,
-                    "password_len=%zu, salt_len=%d, iterations=%d, hash_len=%d",
-                    strlen(password), SALT_LEN, iterations, HASH_LEN);
-                free(copy);
-                return res;
-        }
-
-        free(copy);
-
-        for (int i = 0; i < HASH_LEN; ++i) {
-                if (actual_hash[i] != expected_hash[i]) {
-                        result_t* res = result_failure("Password hash mismatch",
-                                                       NULL, ERR_HASH_MISMATCH);
-                        return res;
-                }
+        if (crypto_pwhash_str_verify(stored_hash, password, strlen(password)) !=
+            0) {
+                return result_failure(
+                    "Password hash mismatch or invalid format", NULL,
+                    ERR_HASH_MISMATCH);
         }
 
         return result_success();

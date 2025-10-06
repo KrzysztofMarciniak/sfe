@@ -45,5 +45,6 @@ result_t* user_fetch_by_username(sqlite3* db, const char* username,
 #define ERR_SQL_BIND_FAIL 1303
 #define ERR_SQL_STEP_FAIL 1304
 #define ERR_USER_NOT_FOUND 1305
+#define ERR_USER_DUPLICATE 1306
 
 #endif// DAL_USER_H

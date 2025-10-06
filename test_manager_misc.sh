@@ -63,3 +63,19 @@ run_post() {
     fi
     echo
 }
+
+# Helper function to get a fresh CSRF token and set the global variable
+get_csrf_token() {
+    # Fetch token from the CSRF endpoint
+    resp=$(curl -s -X GET "$BASE_URL/csrf.cgi")
+
+    # Extract the token using the format specified in your previous test
+    local temp_token=$(printf '%s' "$resp" | jq -r '.messages[0] // empty')
+
+    if [ -z "$temp_token" ]; then
+        echo "[ERROR] Failed to get fresh CSRF token from /csrf.cgi" >&2
+        exit 1
+    fi
+    csrf_token="$temp_token"
+    echo ">>> Acquired fresh CSRF token: $csrf_token"
+}

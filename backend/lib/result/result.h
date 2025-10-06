@@ -43,8 +43,9 @@ result_t* result_new_critical_failure(const char* message,
                                       const char* failed_file,
                                       const char* failed_func);
 void result_free(result_t* res);
-#define result_success(void) result_new_success(void)
+
 /* Convenience macros that capture caller file/func */
+#define result_success() result_new_success()
 #define result_failure(msg, extra, code) \
         result_new_failure((msg), (extra), (code), __FILE__, __func__)
 #define result_critical_failure(msg, extra, code) \

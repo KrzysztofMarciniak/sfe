@@ -28,7 +28,7 @@ int main(void) {
                 if (res->code != RESULT_SUCCESS) {
                         response_init(&resp, 500);
 #if DEBUG
-                        struct json_object* res_json = result_to_json(&res);
+                        struct json_object* res_json = result_to_json(res);
                         if (res_json) {
                                 response_append_json(&resp, res_json);
                                 json_object_put(res_json);
@@ -64,7 +64,7 @@ int main(void) {
                                        ? 400
                                        : 500);
 #if DEBUG
-                        struct json_object* json_err = result_to_json(&rc);
+                        struct json_object* json_err = result_to_json(rc);
                         if (json_err) {
                                 response_append_json(&resp, json_err);
                                 json_object_put(json_err);
@@ -128,7 +128,7 @@ int main(void) {
                         response_free(&resp);
                 } else {
 #if DEBUG
-                        struct json_object* res_json = result_to_json(&res);
+                        struct json_object* res_json = result_to_json(res);
                         response_init(&resp, 400);
                         if (res_json) {
                                 response_append_json(&resp, res_json);

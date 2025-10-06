@@ -51,8 +51,16 @@ result_t* user_insert(sqlite3* db, const user_t* user, user_t** out_user) {
 
         rc = sqlite3_step(stmt);
         if (rc != SQLITE_DONE) {
-                result_t* res = result_failure(
-                    "Failed to execute SQL statement", NULL, ERR_SQL_STEP_FAIL);
+                result_t* res = NULL;
+
+                if (rc == SQLITE_CONSTRAINT) {
+                        res = result_failure("Duplicate entry detected", NULL,
+                                             ERR_USER_DUPLICATE);
+                } else {
+                        res = result_failure("Failed to execute SQL statement",
+                                             NULL, ERR_SQL_STEP_FAIL);
+                }
+
                 result_add_extra(res, "sqlite_error=%s", sqlite3_errmsg(db));
                 sqlite3_finalize(stmt);
                 return res;
