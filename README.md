@@ -1,10 +1,20 @@
 # sfe — Simple Forum Engine
 
 **Status:** In development.
+
+
 **Stack:** C API, SQLite, Docker, Ninja build system, lighttpd CGI, tcc for quick compilation.
+
+
 **Docs:** Doxygen at `/api/docs`.
+
+
 **Tests:** POSIX shell + `curl`.
+
+
 **Security:** CSRF + JWT (uses `jwtc`), libsodium, OpenSSL.
+
+
 **Deps:** `libsodium`, `openssl`, `json-c`, `sanitizec`, `jwtc` ([https://github.com/KrzysztofMarciniak/jwtc](https://github.com/KrzysztofMarciniak/jwtc)), `sanitizec` ([https://github.com/KrzysztofMarciniak/sanitizec](https://github.com/KrzysztofMarciniak/sanitizec)).
 
 ---
