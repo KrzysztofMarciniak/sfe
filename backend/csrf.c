@@ -59,10 +59,10 @@ int main(void) {
                 char* body   = NULL;
                 result_t* rc = read_post_data(&body);
                 if (rc->code != RESULT_SUCCESS) {
-                        response_init(
-                            &resp, rc->error.code == ERR_INVALID_CONTENT_LENGTH
-                                       ? 400
-                                       : 500);
+                        response_init(&resp, rc->data.error.code ==
+                                                     ERR_INVALID_CONTENT_LENGTH
+                                                 ? 400
+                                                 : 500);
 #if DEBUG
                         struct json_object* json_err = result_to_json(rc);
                         if (json_err) {
@@ -73,7 +73,7 @@ int main(void) {
                                                     "Error reading POST data.");
                         }
 #else
-                        if (rc->error.code == ERR_INVALID_CONTENT_LENGTH) {
+                        if (rc->data.error.code == ERR_INVALID_CONTENT_LENGTH) {
                                 response_append_str(
                                     &resp, "Invalid Content Length for POST");
                         } else {
@@ -138,7 +138,7 @@ int main(void) {
                                                     "JSON conversion failed.");
                         }
 #else
-                        switch (res->error.code) {
+                        switch (res->data.error.code) {
                                 case ERR_TOKEN_LENGTH_MISMATCH:
                                         response_init(&resp, 400);
                                         response_append_str(

@@ -72,10 +72,11 @@ int main(void) {
 
         res = read_post_data(&body);
         if (res->code != RESULT_SUCCESS) {
-                response_init(
-                    &resp,
-                    res->error.code == ERR_INVALID_CONTENT_LENGTH ? 400 : 500);
-                switch (res->error.code) {
+                response_init(&resp,
+                              res->data.error.code == ERR_INVALID_CONTENT_LENGTH
+                                  ? 400
+                                  : 500);
+                switch (res->data.error.code) {
                         case ERR_INVALID_CONTENT_LENGTH:
                                 response_append_str(
                                     &resp, "Invalid Content Length for POST");
@@ -206,14 +207,14 @@ int main(void) {
 
         user_res = user_insert(db, &user, &inserted_user);
         if (user_res->code != RESULT_SUCCESS) {
-                response_init(&resp,
-                              (user_res->error.code == ERR_SQL_PREPARE_FAIL ||
-                               user_res->error.code == ERR_SQL_STEP_FAIL ||
-                               user_res->error.code == ERR_SQL_BIND_FAIL)
-                                  ? 500
-                                  : 400);
+                response_init(
+                    &resp, (user_res->data.error.code == ERR_SQL_PREPARE_FAIL ||
+                            user_res->data.error.code == ERR_SQL_STEP_FAIL ||
+                            user_res->data.error.code == ERR_SQL_BIND_FAIL)
+                               ? 500
+                               : 400);
 
-                switch (user_res->error.code) {
+                switch (user_res->data.error.code) {
                         case ERR_USER_DUPLICATE:
                                 response_append_str(&resp,
                                                     "Username already exists.");
@@ -229,8 +230,8 @@ int main(void) {
                                                     "User registration failed");
                                 break;
                         default:
-                                if (user_res->error.message &&
-                                    strstr(user_res->error.message,
+                                if (user_res->data.error.message &&
+                                    strstr(user_res->data.error.message,
                                            "UNIQUE constraint failed")) {
                                         response_append_str(
                                             &resp, "Username already exists.");

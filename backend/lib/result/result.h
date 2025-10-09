@@ -27,10 +27,18 @@ typedef struct {
 /**
  * @struct result_t
  * @brief Structure to hold result status and error details (heap allocated)
+ *
+ * Uses a union to save memory: success does not allocate error_t.
  */
 typedef struct {
         result_code_t code; /**< Result status code */
-        error_t error;      /**< Error details */
+
+        union {
+                struct {
+                } success; /**< Empty placeholder for success */
+
+                error_t error; /**< Error details for failure */
+        } data;
 } result_t;
 
 /* Creation / destruction */
