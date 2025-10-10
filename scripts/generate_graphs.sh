@@ -3,22 +3,21 @@
 # Generates .dot and .svg callgraphs, outputs into docs/graphs and docs/index.html
 set -euo pipefail
 
-# Ensure script is run from the repo root (assume workflow runs in root)
 ROOT="$PWD"
 OUTDIR="$ROOT/docs/graphs"
 
-# Pure Bash to create directory if missing
+# Ensure output dir exists
 if [ ! -d "$OUTDIR" ]; then
-    mkdir "$OUTDIR" 2>/dev/null || {
-        echo "Failed to create output directory $OUTDIR"
-        exit 1
-    }
+    mkdir -p "$OUTDIR" 2>/dev/null || { echo "Failed to create output directory $OUTDIR"; exit 1; }
 fi
 
 echo "Root directory: $ROOT"
 echo "Output directory: $OUTDIR"
 
-# Collect source files using shell globbing
+# Enable recursive globbing and make non-matches expand to zero words
+shopt -s globstar nullglob
+
+# Collect source files using recursive globbing
 BACKEND_C=()
 LIB_C=()
 
@@ -26,7 +25,8 @@ for f in "$ROOT"/backend/*.c; do
     [ -f "$f" ] && BACKEND_C+=("$f")
 done
 
-for f in "$ROOT"/backend/lib/*.c; do
+# recursive: matches backend/lib/**/**/*.c etc.
+for f in "$ROOT"/backend/lib/**/*.c; do
     [ -f "$f" ] && LIB_C+=("$f")
 done
 
@@ -38,15 +38,8 @@ if [ ${#BACKEND_C[@]} -eq 0 ] && [ ${#LIB_C[@]} -eq 0 ]; then
     exit 1
 fi
 
-# Ensure tools are available
 command -v cflow >/dev/null 2>&1 || { echo "cflow not installed"; exit 1; }
 command -v dot >/dev/null 2>&1 || { echo "dot not installed"; exit 1; }
-
-# Temporary dot file helper (pure Bash)
-tmpdot() {
-    file="$1"
-    echo "$OUTDIR/${file##*/}"
-}
 
 # Generate per-backend graph
 for src in "${BACKEND_C[@]}"; do
@@ -56,11 +49,15 @@ for src in "${BACKEND_C[@]}"; do
 
     echo "Processing source file: $src"
 
+    # Build cflow args only if lib files exist
+    CFLOW_ARGS=()
+    [ ${#LIB_C[@]} -gt 0 ] && CFLOW_ARGS+=("${LIB_C[@]}")
+
     if grep -q 'int[[:space:]]\+main[[:space:]]*(' "$src" 2>/dev/null; then
-        cflow -b -T -f dot --main=main "${LIB_C[@]}" "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T -f dot --main=main "${CFLOW_ARGS[@]}" "$src" > "$DOT" 2>/dev/null || \
         cflow -b -T -f dot "$src" > "$DOT"
     else
-        cflow -b -T --format=dot "${LIB_C[@]}" "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T --format=dot "${CFLOW_ARGS[@]}" "$src" > "$DOT" 2>/dev/null || \
         cflow -b -T --format=dot "$src" > "$DOT"
     fi
 
@@ -71,14 +68,14 @@ for src in "${BACKEND_C[@]}"; do
     fi
 done
 
-# Monolithic library graph
+# Monolithic library graph (only if libs exist)
 if [ ${#LIB_C[@]} -gt 0 ]; then
     DOT_LIB="$OUTDIR/lib_all.dot"
     cflow -b -T --format=dot "${LIB_C[@]}" > "$DOT_LIB" 2>/dev/null || echo "Failed to generate library call graph"
     [ -s "$DOT_LIB" ] && dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg" || echo "Failed to convert library graph to SVG"
 fi
 
-# Minimal index.html
+# Build index.html
 IDX="$ROOT/docs/index.html"
 cat > "$IDX" <<'HTML'
 <!doctype html>
