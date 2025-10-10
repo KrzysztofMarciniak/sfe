@@ -1,66 +1,69 @@
 #!/bin/bash
 # generate_graphs.sh
-# - Generates .dot and .svg callgraphs using cflow + dot
-# - Outputs into docs/graphs and a simple docs/index.html
+# Generates .dot and .svg callgraphs, outputs into docs/graphs and docs/index.html
+set -euo pipefail
 
-set -e  # Exit immediately if a command exits with a non-zero status
-set -u  # Treat unset variables as an error
-set -o pipefail  # Fail on any part of a pipe failing
-
-# Ensure script is run from the correct directory
-ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+# Ensure script is run from the repo root (assume workflow runs in root)
+ROOT="$PWD"
 OUTDIR="$ROOT/docs/graphs"
 
-# Create output directory if it doesn't exist
-mkdir -p "$OUTDIR"
+# Pure Bash to create directory if missing
+if [ ! -d "$OUTDIR" ]; then
+    mkdir "$OUTDIR" 2>/dev/null || {
+        echo "Failed to create output directory $OUTDIR"
+        exit 1
+    }
+fi
 
-# Debug: Print out directory paths and check for source files
 echo "Root directory: $ROOT"
 echo "Output directory: $OUTDIR"
 
-# Collect source files with more verbose error checking
-BACKEND_C=$(find "$ROOT/backend" -maxdepth 1 -name '*.c' 2>/dev/null)
-LIB_C=$(find "$ROOT/backend/lib" -name '*.c' 2>/dev/null)
+# Collect source files using shell globbing
+BACKEND_C=()
+LIB_C=()
 
-echo "Backend C files found:"
-echo "$BACKEND_C"
-echo "Lib C files found:"
-echo "$LIB_C"
+for f in "$ROOT"/backend/*.c; do
+    [ -f "$f" ] && BACKEND_C+=("$f")
+done
 
-# Check if any source files were found
-if [ -z "$BACKEND_C" ] && [ -z "$LIB_C" ]; then
-    echo "ERROR: No C source files found in backend or backend/lib directories"
+for f in "$ROOT"/backend/lib/*.c; do
+    [ -f "$f" ] && LIB_C+=("$f")
+done
+
+echo "Backend C files found: ${#BACKEND_C[@]}"
+echo "Lib C files found: ${#LIB_C[@]}"
+
+if [ ${#BACKEND_C[@]} -eq 0 ] && [ ${#LIB_C[@]} -eq 0 ]; then
+    echo "ERROR: No C source files found in backend or backend/lib"
     exit 1
 fi
 
-# Temporary dot file function
+# Ensure tools are available
+command -v cflow >/dev/null 2>&1 || { echo "cflow not installed"; exit 1; }
+command -v dot >/dev/null 2>&1 || { echo "dot not installed"; exit 1; }
+
+# Temporary dot file helper (pure Bash)
 tmpdot() {
-    echo "$OUTDIR/$(basename "$1" .c).dot"
+    file="$1"
+    echo "$OUTDIR/${file##*/}"
 }
 
-# Ensure tools are available
-command -v cflow >/dev/null 2>&1 || { echo >&2 "cflow is not installed. Aborting."; exit 1; }
-command -v dot >/dev/null 2>&1 || { echo >&2 "graphviz (dot) is not installed. Aborting."; exit 1; }
-
 # Generate per-backend graph
-for src in $BACKEND_C; do
-    bn=$(basename "$src" .c)
-    DOT=$(tmpdot "$src")
+for src in "${BACKEND_C[@]}"; do
+    bn="${src##*/}"
+    bn="${bn%.c}"
+    DOT="$OUTDIR/$bn.dot"
 
     echo "Processing source file: $src"
 
-    # Try different cflow options
     if grep -q 'int[[:space:]]\+main[[:space:]]*(' "$src" 2>/dev/null; then
-        echo "Generating callgraph for $bn (entry: main)"
-        cflow -b -T -f dot --main=main $LIB_C "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T -f dot --main=main "${LIB_C[@]}" "$src" > "$DOT" 2>/dev/null || \
         cflow -b -T -f dot "$src" > "$DOT"
     else
-        echo "Generating module callgraph for $bn"
-        cflow -b -T --format=dot $LIB_C "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T --format=dot "${LIB_C[@]}" "$src" > "$DOT" 2>/dev/null || \
         cflow -b -T --format=dot "$src" > "$DOT"
     fi
 
-    # Convert to svg, with error handling
     if [ -s "$DOT" ]; then
         dot -Tsvg "$DOT" -o "$OUTDIR/$bn.svg" || echo "Failed to convert $bn to SVG"
     else
@@ -68,63 +71,42 @@ for src in $BACKEND_C; do
     fi
 done
 
-# Generate a monolithic lib graph (all library sources)
-if [ -n "$LIB_C" ]; then
+# Monolithic library graph
+if [ ${#LIB_C[@]} -gt 0 ]; then
     DOT_LIB="$OUTDIR/lib_all.dot"
-    cflow -b -T --format=dot $LIB_C > "$DOT_LIB" 2>/dev/null || \
-    echo "Failed to generate library call graph"
-
-    if [ -s "$DOT_LIB" ]; then
-        dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg" || \
-        echo "Failed to convert library graph to SVG"
-    fi
+    cflow -b -T --format=dot "${LIB_C[@]}" > "$DOT_LIB" 2>/dev/null || echo "Failed to generate library call graph"
+    [ -s "$DOT_LIB" ] && dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg" || echo "Failed to convert library graph to SVG"
 fi
 
-# Build a minimal index.html (same as your original script)
+# Minimal index.html
 IDX="$ROOT/docs/index.html"
 cat > "$IDX" <<'HTML'
 <!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Call Graphs</title>
-  <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 24px; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap: 18px; }
-    .card { border:1px solid #e1e1e1; padding:12px; border-radius:8px; background:#fff; }
-    .card h3{ margin:0 0 8px 0; font-size:15px; }
-    .svgWrap{ height:420px; overflow:auto; border:1px dashed #ddd; padding:6px; background:#fafafa; }
-    a.meta{ font-size:13px; color:#333; text-decoration:none; }
-  </style>
-</head>
-<body>
-  <h1>Call Graphs (auto-generated)</h1>
-  <p>Generated by <code>scripts/generate_graphs.sh</code>. Rendered with Graphviz.</p>
-  <div class="grid">
+<html><head><meta charset="utf-8"><title>Call Graphs</title>
+<style>body{font-family:system-ui;padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}.card{border:1px solid #e1e1e1;padding:12px;border-radius:8px;background:#fff}.card h3{margin:0 0 8px 0;font-size:15px}.svgWrap{height:420px;overflow:auto;border:1px dashed #ddd;padding:6px;background:#fafafa}a.meta{font-size:13px;color:#333;text-decoration:none}</style>
+</head><body>
+<h1>Call Graphs (auto-generated)</h1>
+<p>Generated by <code>scripts/generate_graphs.sh</code>. Rendered with Graphviz.</p>
+<div class="grid">
 HTML
 
-# Insert each svg as a card
-for svg in $(ls "$OUTDIR"/*.svg 2>/dev/null || true); do
-    name=$(basename "$svg")
-    title=$(basename "$svg" .svg)
+for svg in "$OUTDIR"/*.svg; do
+    [ -f "$svg" ] || continue
+    name="${svg##*/}"
+    title="${name%.svg}"
     cat >> "$IDX" <<HTML
-    <div class="card">
-      <h3>$title</h3>
-      <div class="svgWrap">
-        <object type="image/svg+xml" data="graphs/$name" width="100%"></object>
-      </div>
-      <p><a class="meta" href="graphs/$name" target="_blank">Open SVG</a></p>
-    </div>
+<div class="card">
+  <h3>$title</h3>
+  <div class="svgWrap"><object type="image/svg+xml" data="graphs/$name" width="100%"></object></div>
+  <p><a class="meta" href="graphs/$name" target="_blank">Open SVG</a></p>
+</div>
 HTML
 done
 
 cat >> "$IDX" <<'HTML'
-  </div>
-</body>
-</html>
+</div></body></html>
 HTML
 
-# Final diagnostics
 echo "Graphs generation complete"
 echo "Generated files in $OUTDIR:"
 ls -l "$OUTDIR"
