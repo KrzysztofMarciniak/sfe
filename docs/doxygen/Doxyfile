@@ -1,0 +1,8 @@
+# Minimal Doxygen config
+PROJECT_NAME = "simple forum engine"
+OUTPUT_DIRECTORY = "/home/runner/work/sfe/sfe/docs/doxygen"
+INPUT = "/home/runner/work/sfe/sfe/backend"
+RECURSIVE = YES
+GENERATE_LATEX = NO
+GENERATE_HTML = YES
+QUIET = YES
