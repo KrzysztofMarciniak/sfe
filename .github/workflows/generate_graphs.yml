@@ -30,8 +30,6 @@ jobs:
         run: chmod +x scripts/generate_graphs.sh
 
       - name: Generate graphs
-        env:
-          PATH: "${HOME}/.local/bin:${PATH}"
         run: ./scripts/generate_graphs.sh
 
       - name: Commit generated docs
