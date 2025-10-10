@@ -21,10 +21,10 @@ jobs:
             exit 0
           fi
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cflow graphviz 
+          sudo apt-get install -y cflow graphviz
 
       - name: Make script executable
         run: chmod +x scripts/generate_graphs.sh
@@ -34,16 +34,12 @@ jobs:
           PATH: "${HOME}/.local/bin:${PATH}"
         run: ./scripts/generate_graphs.sh
 
-      - name: Commit generated docs (if changed)
-        env:
-          GIT_COMMITTER_NAME: github-actions
-          GIT_COMMITTER_EMAIL: actions@github.com
+      - name: Commit generated docs
         run: |
-          git config user.name "${GIT_COMMITTER_NAME}"
-          git config user.email "${GIT_COMMITTER_EMAIL}"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add docs || true
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore(graphs): update generated call graphs [ci skip]" || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(graphs): update generated call graphs [ci skip]"
             git push origin HEAD:main
+          fi
