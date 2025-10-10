@@ -1,47 +1,86 @@
+#!/bin/bash
 # generate_graphs.sh
 # - Generates .dot and .svg callgraphs using cflow + dot
 # - Outputs into docs/graphs and a simple docs/index.html
 
-ROOT="$( cd "$( echo "${0%/*}" )" && pwd )/.."
+set -e  # Exit immediately if a command exits with a non-zero status
+set -u  # Treat unset variables as an error
+set -o pipefail  # Fail on any part of a pipe failing
+
+# Ensure script is run from the correct directory
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 OUTDIR="$ROOT/docs/graphs"
 
-# collect source files
-BACKEND_C=$(find "$ROOT/backend" -maxdepth 1 -name '*.c' -print)
-LIB_C=$(find "$ROOT/backend/lib" -name '*.c' -print || true)
+# Create output directory if it doesn't exist
+mkdir -p "$OUTDIR"
 
-# Temporary dot file
+# Debug: Print out directory paths and check for source files
+echo "Root directory: $ROOT"
+echo "Output directory: $OUTDIR"
+
+# Collect source files with more verbose error checking
+BACKEND_C=$(find "$ROOT/backend" -maxdepth 1 -name '*.c' 2>/dev/null)
+LIB_C=$(find "$ROOT/backend/lib" -name '*.c' 2>/dev/null)
+
+echo "Backend C files found:"
+echo "$BACKEND_C"
+echo "Lib C files found:"
+echo "$LIB_C"
+
+# Check if any source files were found
+if [ -z "$BACKEND_C" ] && [ -z "$LIB_C" ]; then
+    echo "ERROR: No C source files found in backend or backend/lib directories"
+    exit 1
+fi
+
+# Temporary dot file function
 tmpdot() {
     echo "$OUTDIR/$(basename "$1" .c).dot"
 }
 
-# Generate per-backend graph. If file contains main(), use --main=main (clear entry).
+# Ensure tools are available
+command -v cflow >/dev/null 2>&1 || { echo >&2 "cflow is not installed. Aborting."; exit 1; }
+command -v dot >/dev/null 2>&1 || { echo >&2 "graphviz (dot) is not installed. Aborting."; exit 1; }
+
+# Generate per-backend graph
 for src in $BACKEND_C; do
     bn=$(basename "$src" .c)
     DOT=$(tmpdot "$src")
 
+    echo "Processing source file: $src"
+
+    # Try different cflow options
     if grep -q 'int[[:space:]]\+main[[:space:]]*(' "$src" 2>/dev/null; then
         echo "Generating callgraph for $bn (entry: main)"
-        cflow -f dot --main=main $LIB_C "$src" > "$DOT" 2>/dev/null || \
-            cflow -f dot $LIB_C "$src" > "$DOT"
+        cflow -b -T -f dot --main=main $LIB_C "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T -f dot "$src" > "$DOT"
     else
         echo "Generating module callgraph for $bn"
-        # include lib and the single backend file to get context
-        cflow --format=graphviz $LIB_C "$src" > "$DOT" 2>/dev/null || \
-            cflow --format=graphviz $LIB_C "$src" > "$DOT"
+        cflow -b -T --format=dot $LIB_C "$src" > "$DOT" 2>/dev/null || \
+        cflow -b -T --format=dot "$src" > "$DOT"
     fi
 
-    # Convert to svg
-    dot -Tsvg "$DOT" -o "$OUTDIR/$bn.svg"
+    # Convert to svg, with error handling
+    if [ -s "$DOT" ]; then
+        dot -Tsvg "$DOT" -o "$OUTDIR/$bn.svg" || echo "Failed to convert $bn to SVG"
+    else
+        echo "Failed to generate DOT file for $bn"
+    fi
 done
 
 # Generate a monolithic lib graph (all library sources)
 if [ -n "$LIB_C" ]; then
     DOT_LIB="$OUTDIR/lib_all.dot"
-    cflow --format=graphviz $LIB_C > "$DOT_LIB" 2>/dev/null || cflow --format=graphviz $LIB_C > "$DOT_LIB"
-    dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg"
+    cflow -b -T --format=dot $LIB_C > "$DOT_LIB" 2>/dev/null || \
+    echo "Failed to generate library call graph"
+
+    if [ -s "$DOT_LIB" ]; then
+        dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg" || \
+        echo "Failed to convert library graph to SVG"
+    fi
 fi
 
-# Build a minimal index.html
+# Build a minimal index.html (same as your original script)
 IDX="$ROOT/docs/index.html"
 cat > "$IDX" <<'HTML'
 <!doctype html>
@@ -85,4 +124,8 @@ cat >> "$IDX" <<'HTML'
 </html>
 HTML
 
-echo "Graphs written to $OUTDIR and index at docs/index.html"
+# Final diagnostics
+echo "Graphs generation complete"
+echo "Generated files in $OUTDIR:"
+ls -l "$OUTDIR"
+echo "Index file: $IDX"
