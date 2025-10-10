@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cflow graphviz
+          sudo apt-get install -y cflow graphviz coreutils
 
       - name: Make script executable
         run: chmod +x scripts/generate_graphs.sh
