@@ -76,7 +76,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Structure to hold result status and error details (heap allocated)  
+<p>Represents the result of an operation, including optional error info.  
  <a href="structresult__t.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="result_8h_source.html">result.h</a>&gt;</code></p>
@@ -85,8 +85,8 @@ Collaboration diagram for result_t:</div>
 <div class="dyncontent">
 <div class="center"><img src="structresult__t__coll__graph.png" border="0" usemap="#aresult__t_coll__map" alt="Collaboration graph"/></div>
 <map name="aresult__t_coll__map" id="aresult__t_coll__map">
-<area shape="rect" title="Structure to hold result status and error details (heap allocated)" alt="" coords="5,93,76,119"/>
-<area shape="rect" href="structerror__t.html" title="Structure to hold error information for library&#45;specific errors." alt="" coords="8,5,73,31"/>
+<area shape="rect" title="Represents the result of an operation, including optional error info." alt="" coords="5,93,76,119"/>
+<area shape="rect" href="structerror__t.html" title="Structure holding detailed information about an error." alt="" coords="8,5,73,31"/>
 <area shape="poly" title=" " alt="" coords="43,45,43,93,38,93,38,45"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
@@ -108,8 +108,8 @@ union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
 <tr class="separator:aa0ca738c15489de740ce7fe0670311f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Structure to hold result status and error details (heap allocated) </p>
-<p>Uses a union to save memory: success does not allocate <a class="el" href="structerror__t.html" title="Structure to hold error information for library-specific errors.">error_t</a>. </p>
+<div class="textblock"><p>Represents the result of an operation, including optional error info. </p>
+<p>Uses a union to minimize memory usage. For successful operations, no <a class="el" href="structerror__t.html" title="Structure holding detailed information about an error.">error_t</a> structure is allocated. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a2a6ceb7b48f783cf8471d76d0a37714a" name="a2a6ceb7b48f783cf8471d76d0a37714a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2a6ceb7b48f783cf8471d76d0a37714a">&#9670;&#160;</a></span>code</h2>
@@ -122,7 +122,7 @@ union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Result status code </p>
+<p>Status code representing success or failure </p>
 
 </div>
 </div>
@@ -137,7 +137,7 @@ union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Error details for failure </p>
+<p>Error information for failures </p>
 
 </div>
 </div>
@@ -152,7 +152,7 @@ union {&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Empty placeholder for success </p>
+<p>Placeholder for success (no additional data) </p>
 
 </div>
 </div>

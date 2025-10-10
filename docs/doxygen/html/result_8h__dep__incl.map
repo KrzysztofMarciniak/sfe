@@ -1,0 +1,7 @@
+<map id="backend/lib/result/result.h" name="backend/lib/result/result.h">
+<area shape="rect" id="Node000001" title="Provides result handling utilities with structured error information and JSON serialization." alt="" coords="87,5,224,45"/>
+<area shape="rect" id="Node000002" href="$lib_2result_2result_8c.html" title="Implementation of result handling and error reporting utilities." alt="" coords="5,93,143,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,57,94,95,90,91,126,54"/>
+<area shape="rect" id="Node000003" href="$register_8c.html" title="CGI endpoint for user registration (signup)." alt="" coords="167,101,307,126"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,54,227,98,223,102,181,57"/>
+</map>

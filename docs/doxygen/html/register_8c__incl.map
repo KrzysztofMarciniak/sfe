@@ -28,7 +28,7 @@
 <area shape="poly" id="edge21_Node000001_Node000017" title=" " alt="" coords="773,26,910,47,1079,76,1078,81,909,52,772,32"/>
 <area shape="rect" id="Node000018" href="$response_8h_source.html" title=" " alt="" coords="891,86,1067,111"/>
 <area shape="poly" id="edge23_Node000001_Node000018" title=" " alt="" coords="743,28,927,80,925,85,742,33"/>
-<area shape="rect" id="Node000019" href="$result_8h_source.html" title=" " alt="" coords="1707,86,1839,111"/>
+<area shape="rect" id="Node000019" href="$result_8h.html" title="Provides result handling utilities with structured error information and JSON serialization." alt="" coords="1707,86,1839,111"/>
 <area shape="poly" id="edge26_Node000001_Node000019" title=" " alt="" coords="772,17,936,21,1163,30,1424,47,1688,76,1714,81,1713,86,1687,81,1423,52,1163,35,936,26,772,22"/>
 <area shape="rect" id="Node000011" title=" " alt="" coords="1079,167,1248,207"/>
 <area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="853,109,880,116,1066,161,1065,166,879,121,852,114"/>

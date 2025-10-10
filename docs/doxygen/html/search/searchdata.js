@@ -3,8 +3,11 @@ var indexSectionsWithContent =
   0: "cefgijmprsuv",
   1: "eru",
   2: "cjrsu",
-  3: "cgiuv",
-  4: "cefimprsu"
+  3: "cgiruv",
+  4: "cefimprsu",
+  5: "r",
+  6: "r",
+  7: "er"
 };
 
 var indexSectionNames =
@@ -13,7 +16,10 @@ var indexSectionNames =
   1: "classes",
   2: "files",
   3: "functions",
-  4: "variables"
+  4: "variables",
+  5: "enums",
+  6: "enumvalues",
+  7: "defines"
 };
 
 var indexSectionLabels =
@@ -22,6 +28,9 @@ var indexSectionLabels =
   1: "Classes",
   2: "Files",
   3: "Functions",
-  4: "Variables"
+  4: "Variables",
+  5: "Enumerations",
+  6: "Enumerator",
+  7: "Macros"
 };
 

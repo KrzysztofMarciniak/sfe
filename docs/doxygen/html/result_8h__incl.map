@@ -1,0 +1,9 @@
+<map id="backend/lib/result/result.h" name="backend/lib/result/result.h">
+<area shape="rect" id="Node000001" title="Provides result handling utilities with structured error information and JSON serialization." alt="" coords="102,5,239,45"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,93,109,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,48,87,87,84,83,142,43"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="133,93,208,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="173,46,173,79,168,79,168,46"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="232,93,307,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="196,43,245,82,242,87,193,48"/>
+</map>

@@ -76,7 +76,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Structure to hold error information for library-specific errors.  
+<p>Structure holding detailed information about an error.  
  <a href="structerror__t.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="result_8h_source.html">result.h</a>&gt;</code></p>
@@ -95,7 +95,8 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ad2f7c06ade2f04107610764ffe010126"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Structure to hold error information for library-specific errors. </p>
+<div class="textblock"><p>Structure holding detailed information about an error. </p>
+<p>Each field is heap-allocated; caller is responsible for cleanup through <a class="el" href="lib_2result_2result_8c.html#ae47db9885f8dd307a62706b6ac44a8de" title="Release memory owned by a result_t structure.">result_free()</a>. </p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="ac5e0f6975e09a75bd2f39d5e00d3f20b" name="ac5e0f6975e09a75bd2f39d5e00d3f20b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac5e0f6975e09a75bd2f39d5e00d3f20b">&#9670;&#160;</a></span>code</h2>
@@ -123,7 +124,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Additional error information (heap) </p>
+<p>Optional additional context or details </p>
 
 </div>
 </div>
@@ -138,7 +139,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>File where error occurred (heap) </p>
+<p>Source file where error occurred </p>
 
 </div>
 </div>
@@ -153,7 +154,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Function where error occurred (heap) </p>
+<p>Function name where error occurred </p>
 
 </div>
 </div>
@@ -168,7 +169,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Error message (heap) </p>
+<p>Human-readable error message </p>
 
 </div>
 </div>

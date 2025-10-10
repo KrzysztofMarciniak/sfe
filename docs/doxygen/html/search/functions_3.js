@@ -1,6 +1,9 @@
 var searchData=
 [
-  ['user_5ffetch_5fby_5fid_0',['user_fetch_by_id',['../user_8h.html#a5a9b330eae2b8bfc6b94e812ddd4e8ea',1,'user.c']]],
-  ['user_5ffetch_5fby_5fusername_1',['user_fetch_by_username',['../user_8h.html#a48858922d79d993f776986a6a8c43e6b',1,'user.c']]],
-  ['user_5finsert_2',['user_insert',['../user_8h.html#a17ca57b3efe75d25c60d33b0b924daac',1,'user.c']]]
+  ['result_5fadd_5fextra_0',['result_add_extra',['../lib_2result_2result_8c.html#a41bf93b6f5f5ce927fc4542e83e691dd',1,'result_add_extra(result_t *res, const char *format,...):&#160;result.c'],['../result_8h.html#a41bf93b6f5f5ce927fc4542e83e691dd',1,'result_add_extra(result_t *res, const char *format,...):&#160;result.c']]],
+  ['result_5ffree_1',['result_free',['../lib_2result_2result_8c.html#ae47db9885f8dd307a62706b6ac44a8de',1,'result_free(result_t *res):&#160;result.c'],['../result_8h.html#ae47db9885f8dd307a62706b6ac44a8de',1,'result_free(result_t *res):&#160;result.c']]],
+  ['result_5fnew_5fcritical_5ffailure_2',['result_new_critical_failure',['../lib_2result_2result_8c.html#a6bb2bc49d6e35a12ca156ba335f8d03c',1,'result_new_critical_failure(const char *message, const char *extra_info, int error_code, const char *failed_file, const char *failed_func):&#160;result.c'],['../result_8h.html#a6bb2bc49d6e35a12ca156ba335f8d03c',1,'result_new_critical_failure(const char *message, const char *extra_info, int error_code, const char *failed_file, const char *failed_func):&#160;result.c']]],
+  ['result_5fnew_5ffailure_3',['result_new_failure',['../lib_2result_2result_8c.html#a6870b08c44cafd5d8f405e5f3e5615b4',1,'result_new_failure(const char *message, const char *extra_info, int error_code, const char *failed_file, const char *failed_func):&#160;result.c'],['../result_8h.html#a6870b08c44cafd5d8f405e5f3e5615b4',1,'result_new_failure(const char *message, const char *extra_info, int error_code, const char *failed_file, const char *failed_func):&#160;result.c']]],
+  ['result_5fnew_5fsuccess_4',['result_new_success',['../lib_2result_2result_8c.html#a50a09e211b5f0ed1757477010c5c96c0',1,'result_new_success(void):&#160;result.c'],['../result_8h.html#a50a09e211b5f0ed1757477010c5c96c0',1,'result_new_success(void):&#160;result.c']]],
+  ['result_5fto_5fjson_5',['result_to_json',['../lib_2result_2result_8c.html#a8270c5ea7b160a204c79b35b1dc983c7',1,'result_to_json(const result_t *res):&#160;result.c'],['../result_8h.html#a8270c5ea7b160a204c79b35b1dc983c7',1,'result_to_json(const result_t *res):&#160;result.c']]]
 ];

@@ -1,0 +1,18 @@
+<map id="backend/lib/result/result.c" name="backend/lib/result/result.c">
+<area shape="rect" id="Node000001" title="Implementation of result handling and error reporting utilities." alt="" coords="265,5,402,45"/>
+<area shape="rect" id="Node000002" href="$result_8h.html" title="Provides result handling utilities with structured error information and JSON serialization." alt="" coords="147,93,218,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="298,48,219,89,216,84,296,43"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="232,167,307,192"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="320,47,304,69,290,94,281,125,275,154,270,153,275,123,286,92,300,66,316,44"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="300,93,367,119"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="336,46,336,79,331,79,331,46"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="391,93,462,119"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="358,44,404,82,400,86,354,48"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="486,93,557,119"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="379,43,482,85,480,90,377,48"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,167,109,192"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="164,121,91,162,88,157,161,116"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="198,117,246,156,243,160,195,121"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="133,167,208,192"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="183,119,178,154,172,153,178,119"/>
+</map>
