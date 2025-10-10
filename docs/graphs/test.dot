@@ -1,0 +1,19 @@
+digraph cflow {
+    node [shape="box"]
+    main [label="int main (void)
+/home/runner/work/sfe/sfe/backend/test.c:5"]
+    main -> json_object_new_object
+    main -> json_object_object_add
+    main -> json_object_new_string
+    main -> json_object_to_json_string
+    main -> printf
+    main -> strlen
+    main -> json_object_put
+    json_object_new_object [label="json_object_new_object()"]
+    json_object_object_add [label="json_object_object_add()"]
+    json_object_new_string [label="json_object_new_string()"]
+    json_object_to_json_string [label="json_object_to_json_string()"]
+    printf [label="printf()"]
+    strlen [label="strlen()"]
+    json_object_put [label="json_object_put()"]
+}

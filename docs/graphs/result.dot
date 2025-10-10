@@ -1,0 +1,85 @@
+digraph cflow {
+    node [shape="box"]
+    main [label="int main (void)
+/home/runner/work/sfe/sfe/backend/result.c:37"]
+    main -> test_fail
+    main -> result_to_json
+    main -> result_free
+    main -> response_init
+    main -> response_append_json
+    main -> json_object_put
+    main -> response_send
+    main -> response_free
+    main -> response_append_str
+    test_fail [label="result_t *test_fail (void)
+/home/runner/work/sfe/sfe/backend/lib/result_test/result_test.c:3"]
+    test_fail -> result_failure
+    test_fail -> result_add_extra
+    result_failure [label="result_failure()"]
+    result_add_extra [label="void result_add_extra (result_t *res, const char *format, ...)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:71"]
+    result_add_extra -> va_start
+    result_add_extra -> va_copy
+    result_add_extra -> vsnprintf
+    result_add_extra -> va_end
+    result_add_extra -> malloc
+    result_add_extra -> free
+    va_start [label="va_start()"]
+    va_copy [label="va_copy()"]
+    vsnprintf [label="vsnprintf()"]
+    va_end [label="va_end()"]
+    malloc [label="malloc()"]
+    free [label="free()"]
+    result_to_json [label="struct json_object *result_to_json (const result_t *res)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:94"]
+    result_to_json -> json_object_new_object
+    result_to_json -> json_object_object_add
+    result_to_json -> json_object_new_string
+    result_to_json -> json_object_new_int
+    result_to_json -> json_object_put
+    json_object_new_object [label="json_object_new_object()"]
+    json_object_object_add [label="json_object_object_add()"]
+    json_object_new_string [label="json_object_new_string()"]
+    json_object_new_int [label="json_object_new_int()"]
+    json_object_put [label="json_object_put()"]
+    result_free [label="void result_free (result_t *res)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:57"]
+    result_free -> free
+    response_init [label="void response_init (response_t *resp, unsigned int http_code)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:16"]
+    response_init -> json_object_put
+    response_init -> json_object_new_object
+    response_init -> json_object_object_add
+    response_init -> json_object_new_int
+    response_init -> json_object_new_array
+    json_object_new_array [label="json_object_new_array()"]
+    response_append_json [label="void response_append_json (response_t *resp, struct json_object *obj)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:78"]
+    response_append_json -> json_object_new_array
+    response_append_json -> json_object_object_add
+    response_append_json -> json_object_get
+    response_append_json -> json_object_array_add
+    response_append_json -> json_object_put
+    json_object_get [label="json_object_get()"]
+    json_object_array_add [label="json_object_array_add()"]
+    response_send [label="void response_send (response_t *resp)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:107"]
+    response_send -> json_object_new_object
+    response_send -> json_object_object_add
+    response_send -> json_object_new_int
+    response_send -> json_object_new_array
+    response_send -> json_object_to_json_string_ext
+    response_send -> printf
+    json_object_to_json_string_ext [label="json_object_to_json_string_ext()"]
+    printf [label="printf()"]
+    response_free [label="void response_free (response_t *resp)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:150"]
+    response_free -> json_object_put
+    response_append_str [label="void response_append_str (response_t *resp, const char *msg)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:49"]
+    response_append_str -> json_object_new_array
+    response_append_str -> json_object_object_add
+    response_append_str -> json_object_new_string
+    response_append_str -> json_object_array_add
+    response_append_str -> json_object_put
+}

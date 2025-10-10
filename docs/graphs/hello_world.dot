@@ -1,0 +1,43 @@
+digraph cflow {
+    node [shape="box"]
+    main [label="int main (void)
+/home/runner/work/sfe/sfe/backend/hello_world.c:14"]
+    main -> getenv
+    main -> response_init
+    main -> response_append_str
+    main -> response_send
+    main -> strcmp
+    getenv [label="getenv()"]
+    response_init [label="void response_init (response_t *resp, unsigned int http_code)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:16"]
+    response_init -> json_object_put
+    response_init -> json_object_new_object
+    response_init -> json_object_object_add
+    response_init -> json_object_new_int
+    response_init -> json_object_new_array
+    json_object_put [label="json_object_put()"]
+    json_object_new_object [label="json_object_new_object()"]
+    json_object_object_add [label="json_object_object_add()"]
+    json_object_new_int [label="json_object_new_int()"]
+    json_object_new_array [label="json_object_new_array()"]
+    response_append_str [label="void response_append_str (response_t *resp, const char *msg)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:49"]
+    response_append_str -> json_object_new_array
+    response_append_str -> json_object_object_add
+    response_append_str -> json_object_new_string
+    response_append_str -> json_object_array_add
+    response_append_str -> json_object_put
+    json_object_new_string [label="json_object_new_string()"]
+    json_object_array_add [label="json_object_array_add()"]
+    response_send [label="void response_send (response_t *resp)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:107"]
+    response_send -> json_object_new_object
+    response_send -> json_object_object_add
+    response_send -> json_object_new_int
+    response_send -> json_object_new_array
+    response_send -> json_object_to_json_string_ext
+    response_send -> printf
+    json_object_to_json_string_ext [label="json_object_to_json_string_ext()"]
+    printf [label="printf()"]
+    strcmp [label="strcmp()"]
+}

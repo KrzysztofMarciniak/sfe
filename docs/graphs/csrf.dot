@@ -1,0 +1,184 @@
+digraph cflow {
+    node [shape="box"]
+    main [label="int main (void)
+/home/runner/work/sfe/sfe/backend/csrf.c:13"]
+    main -> getenv
+    main -> response_init
+    main -> response_append_str
+    main -> response_send
+    main -> response_free
+    main -> strcmp
+    main -> csrf_generate_token
+    main -> result_to_json
+    main -> response_append_json
+    main -> json_object_put
+    main -> result_free
+    main -> free
+    main -> read_post_data
+    main -> json_tokener_parse
+    main -> json_object_object_get_ex
+    main -> json_object_get_string
+    main -> csrf_validate_token
+    getenv [label="getenv()"]
+    response_init [label="void response_init (response_t *resp, unsigned int http_code)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:16"]
+    response_init -> json_object_put
+    response_init -> json_object_new_object
+    response_init -> json_object_object_add
+    response_init -> json_object_new_int
+    response_init -> json_object_new_array
+    json_object_put [label="json_object_put()"]
+    json_object_new_object [label="json_object_new_object()"]
+    json_object_object_add [label="json_object_object_add()"]
+    json_object_new_int [label="json_object_new_int()"]
+    json_object_new_array [label="json_object_new_array()"]
+    response_append_str [label="void response_append_str (response_t *resp, const char *msg)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:49"]
+    response_append_str -> json_object_new_array
+    response_append_str -> json_object_object_add
+    response_append_str -> json_object_new_string
+    response_append_str -> json_object_array_add
+    response_append_str -> json_object_put
+    json_object_new_string [label="json_object_new_string()"]
+    json_object_array_add [label="json_object_array_add()"]
+    response_send [label="void response_send (response_t *resp)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:107"]
+    response_send -> json_object_new_object
+    response_send -> json_object_object_add
+    response_send -> json_object_new_int
+    response_send -> json_object_new_array
+    response_send -> json_object_to_json_string_ext
+    response_send -> printf
+    json_object_to_json_string_ext [label="json_object_to_json_string_ext()"]
+    printf [label="printf()"]
+    response_free [label="void response_free (response_t *resp)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:150"]
+    response_free -> json_object_put
+    strcmp [label="strcmp()"]
+    csrf_generate_token [label="result_t *csrf_generate_token (char **out_token)
+/home/runner/work/sfe/sfe/backend/lib/csrf/csrf.c:67"]
+    csrf_generate_token -> RAND_bytes
+    csrf_generate_token -> result_critical_failure
+    csrf_generate_token -> time
+    csrf_generate_token -> get_csrf_secret
+    csrf_generate_token -> strlen
+    csrf_generate_token -> result_free
+    csrf_generate_token -> memcpy
+    csrf_generate_token -> HMAC
+    csrf_generate_token -> EVP_sha256
+    csrf_generate_token -> result_failure
+    csrf_generate_token -> result_add_extra
+    csrf_generate_token -> malloc
+    csrf_generate_token -> to_hex
+    csrf_generate_token -> result_success
+    RAND_bytes [label="RAND_bytes()"]
+    result_critical_failure [label="result_critical_failure()"]
+    time [label="time()"]
+    get_csrf_secret [label="result_t *get_csrf_secret (char **out_secret)
+/home/runner/work/sfe/sfe/backend/lib/secrets/secrets.c:97"]
+    get_csrf_secret -> result_failure
+    get_csrf_secret -> read_secret_file
+    get_csrf_secret -> result_success
+    result_failure [label="result_failure()"]
+    read_secret_file [label="result_t *read_secret_file (const char *path, char **out_secret)
+/home/runner/work/sfe/sfe/backend/lib/secrets/secrets.c:23"]
+    read_secret_file -> result_failure
+    read_secret_file -> result_add_extra
+    read_secret_file -> fopen
+    read_secret_file -> fseek
+    read_secret_file -> fclose
+    read_secret_file -> ftell
+    read_secret_file -> rewind
+    read_secret_file -> malloc
+    read_secret_file -> result_critical_failure
+    read_secret_file -> fread
+    read_secret_file -> free
+    read_secret_file -> result_success
+    result_add_extra [label="void result_add_extra (result_t *res, const char *format, ...)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:71"]
+    result_add_extra -> va_start
+    result_add_extra -> va_copy
+    result_add_extra -> vsnprintf
+    result_add_extra -> va_end
+    result_add_extra -> malloc
+    result_add_extra -> free
+    va_start [label="va_start()"]
+    va_copy [label="va_copy()"]
+    vsnprintf [label="vsnprintf()"]
+    va_end [label="va_end()"]
+    malloc [label="malloc()"]
+    free [label="free()"]
+    fopen [label="fopen()"]
+    fseek [label="fseek()"]
+    fclose [label="fclose()"]
+    ftell [label="ftell()"]
+    rewind [label="rewind()"]
+    fread [label="fread()"]
+    result_success [label="result_success()"]
+    strlen [label="strlen()"]
+    result_free [label="void result_free (result_t *res)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:57"]
+    result_free -> free
+    memcpy [label="memcpy()"]
+    HMAC [label="HMAC()"]
+    EVP_sha256 [label="EVP_sha256()"]
+    to_hex [label="void to_hex (const unsigned char *src, size_t len, char *dest)
+/home/runner/work/sfe/sfe/backend/lib/csrf/csrf.c:31"]
+    to_hex -> hex_char
+    hex_char [label="char hex_char (unsigned char c)
+/home/runner/work/sfe/sfe/backend/lib/csrf/csrf.c:23"]
+    result_to_json [label="struct json_object *result_to_json (const result_t *res)
+/home/runner/work/sfe/sfe/backend/lib/result/result.c:94"]
+    result_to_json -> json_object_new_object
+    result_to_json -> json_object_object_add
+    result_to_json -> json_object_new_string
+    result_to_json -> json_object_new_int
+    result_to_json -> json_object_put
+    response_append_json [label="void response_append_json (response_t *resp, struct json_object *obj)
+/home/runner/work/sfe/sfe/backend/lib/response/response.c:78"]
+    response_append_json -> json_object_new_array
+    response_append_json -> json_object_object_add
+    response_append_json -> json_object_get
+    response_append_json -> json_object_array_add
+    response_append_json -> json_object_put
+    json_object_get [label="json_object_get()"]
+    read_post_data [label="result_t *read_post_data (char **out_body)
+/home/runner/work/sfe/sfe/backend/lib/read_post_data/read_post_data.c:13"]
+    read_post_data -> getenv
+    read_post_data -> result_failure
+    read_post_data -> result_add_extra
+    read_post_data -> strtol
+    read_post_data -> malloc
+    read_post_data -> result_critical_failure
+    read_post_data -> fread
+    read_post_data -> free
+    read_post_data -> result_success
+    strtol [label="strtol()"]
+    json_tokener_parse [label="json_tokener_parse()"]
+    json_object_object_get_ex [label="json_object_object_get_ex()"]
+    json_object_get_string [label="json_object_get_string()"]
+    csrf_validate_token [label="result_t *csrf_validate_token (const char *token)
+/home/runner/work/sfe/sfe/backend/lib/csrf/csrf.c:154"]
+    csrf_validate_token -> result_failure
+    csrf_validate_token -> sanitizec_apply
+    csrf_validate_token -> result_critical_failure
+    csrf_validate_token -> strlen
+    csrf_validate_token -> result_add_extra
+    csrf_validate_token -> free
+    csrf_validate_token -> from_hex
+    csrf_validate_token -> time
+    csrf_validate_token -> get_csrf_secret
+    csrf_validate_token -> result_free
+    csrf_validate_token -> memcpy
+    csrf_validate_token -> HMAC
+    csrf_validate_token -> EVP_sha256
+    csrf_validate_token -> memcmp
+    csrf_validate_token -> result_success
+    sanitizec_apply [label="sanitizec_apply()"]
+    from_hex [label="bool from_hex (const char *src, unsigned char *dest, size_t len)
+/home/runner/work/sfe/sfe/backend/lib/csrf/csrf.c:48"]
+    from_hex -> sscanf
+    sscanf [label="sscanf()"]
+    memcmp [label="int memcmp (const void *a, const void *b, size_t len)
+/home/runner/work/sfe/sfe/backend/lib/memcmp/memcmp.c:3"]
+}
