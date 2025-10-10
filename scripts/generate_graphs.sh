@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 set -eu
 
 # generate_graphs.sh
