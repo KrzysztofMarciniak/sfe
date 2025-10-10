@@ -16,7 +16,6 @@ jobs:
 
       - name: Prevent loops when action commits graphs
         run: |
-          echo "GITHUB_ACTOR=$GITHUB_ACTOR"
           if [ "${GITHUB_ACTOR}" = "github-actions[bot]" ]; then
             echo "Triggered by github-actions bot — exiting to avoid loop."
             exit 0
@@ -32,6 +31,8 @@ jobs:
         run: chmod +x scripts/generate_graphs.sh
 
       - name: Generate graphs
+        env:
+          PATH: "${HOME}/.local/bin:${PATH}"
         run: ./scripts/generate_graphs.sh
 
       - name: Commit generated docs (if changed)
