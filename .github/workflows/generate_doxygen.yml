@@ -1,0 +1,42 @@
+name: Generate Doxygen Docs
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prevent loops when action commits docs
+        run: |
+          if [ "${GITHUB_ACTOR}" = "github-actions[bot]" ]; then
+            echo "Triggered by github-actions bot — exiting to avoid loop."
+            exit 0
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen
+
+      - name: Make script executable
+        run: chmod +x scripts/generate_doxygen.sh
+
+      - name: Generate Doxygen docs
+        run: ./scripts/generate_doxygen.sh
+
+      - name: Commit generated docs
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add docs/doxygen || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(doxygen): update generated docs [ci skip]"
+            git push origin HEAD:main
