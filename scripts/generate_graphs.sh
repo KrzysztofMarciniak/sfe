@@ -1,52 +1,33 @@
-#!/bin/bash
-set -eu
 # generate_graphs.sh
-# - Generates .dot and .svg callgraphs using cflow -f dot + dot
+# - Generates .dot and .svg callgraphs using cflow + dot
 # - Outputs into docs/graphs and a simple docs/index.html
-# Pure bash (no `find`), safe for filenames with spaces.
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$( cd "$( echo "${0%/*}" )" && pwd )/.."
 OUTDIR="$ROOT/docs/graphs"
-mkdir -p "$OUTDIR"
 
-# Use bash globbing (nullglob) so patterns with no match expand to empty list
-shopt -s nullglob
+# collect source files
+BACKEND_C=$(find "$ROOT/backend" -maxdepth 1 -name '*.c' -print)
+LIB_C=$(find "$ROOT/backend/lib" -name '*.c' -print || true)
 
-# Collect backend and lib sources without `find`
-BACKEND_C=("$ROOT"/backend/*.c)
-LIB_C=("$ROOT"/backend/lib/*.c)
+# Temporary dot file
+tmpdot() {
+    echo "$OUTDIR/$(basename "$1" .c).dot"
+}
 
-# If the directory doesn't exist, make arrays empty
-[ -d "$ROOT/backend" ] || BACKEND_C=()
-[ -d "$ROOT/backend/lib" ] || LIB_C=()
-
-# Helper to produce dot filename for a source
-tmpdot() { printf '%s\n' "$OUTDIR/$(basename "$1" .c).dot"; }
-
-echo "Output directory: $OUTDIR"
-echo "Backend files: ${#BACKEND_C[@]}"
-echo "Lib files: ${#LIB_C[@]}"
-
-# Generate per-backend graph. If file contains main(), use --main=main.
-for src in "${BACKEND_C[@]}"; do
-    [ -f "$src" ] || continue
+# Generate per-backend graph. If file contains main(), use --main=main (clear entry).
+for src in $BACKEND_C; do
     bn=$(basename "$src" .c)
-    DOT="$(tmpdot "$src")"
+    DOT=$(tmpdot "$src")
 
-    if grep -q -E 'int[[:space:]]+main[[:space:]]*\(' "$src" 2>/dev/null; then
+    if grep -q 'int[[:space:]]\+main[[:space:]]*(' "$src" 2>/dev/null; then
         echo "Generating callgraph for $bn (entry: main)"
-        if [ "${#LIB_C[@]}" -gt 0 ]; then
-            cflow -f dot --main=main "${LIB_C[@]}" "$src" >"$DOT"
-        else
-            cflow -f dot --main=main "$src" >"$DOT"
-        fi
+        cflow -f dot --main=main $LIB_C "$src" > "$DOT" 2>/dev/null || \
+            cflow -f dot $LIB_C "$src" > "$DOT"
     else
         echo "Generating module callgraph for $bn"
-        if [ "${#LIB_C[@]}" -gt 0 ]; then
-            cflow -f dot "${LIB_C[@]}" "$src" >"$DOT"
-        else
-            cflow -f dot "$src" >"$DOT"
-        fi
+        # include lib and the single backend file to get context
+        cflow --format=graphviz $LIB_C "$src" > "$DOT" 2>/dev/null || \
+            cflow --format=graphviz $LIB_C "$src" > "$DOT"
     fi
 
     # Convert to svg
@@ -54,11 +35,10 @@ for src in "${BACKEND_C[@]}"; do
 done
 
 # Generate a monolithic lib graph (all library sources)
-if [ "${#LIB_C[@]}" -gt 0 ]; then
-    echo "Generating combined library callgraph"
-    LIBDOT="$OUTDIR/lib_all.dot"
-    cflow -f dot "${LIB_C[@]}" >"$LIBDOT"
-    dot -Tsvg "$LIBDOT" -o "$OUTDIR/lib_all.svg"
+if [ -n "$LIB_C" ]; then
+    DOT_LIB="$OUTDIR/lib_all.dot"
+    cflow --format=graphviz $LIB_C > "$DOT_LIB" 2>/dev/null || cflow --format=graphviz $LIB_C > "$DOT_LIB"
+    dot -Tsvg "$DOT_LIB" -o "$OUTDIR/lib_all.svg"
 fi
 
 # Build a minimal index.html
@@ -84,9 +64,8 @@ cat > "$IDX" <<'HTML'
   <div class="grid">
 HTML
 
-# Insert each svg as a card (safe iteration)
-for svg in "$OUTDIR"/*.svg; do
-    [ -f "$svg" ] || continue
+# Insert each svg as a card
+for svg in $(ls "$OUTDIR"/*.svg 2>/dev/null || true); do
     name=$(basename "$svg")
     title=$(basename "$svg" .svg)
     cat >> "$IDX" <<HTML

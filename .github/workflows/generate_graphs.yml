@@ -24,8 +24,7 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y cflow graphviz python3-pip
-          pip3 install --user gprof2dot
+          sudo apt-get install -y cflow graphviz 
 
       - name: Make script executable
         run: chmod +x scripts/generate_graphs.sh
