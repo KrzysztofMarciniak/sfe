@@ -81,33 +81,41 @@ cat > "$IDX" <<'HTML'
 <meta charset="utf-8">
 <title>Call Graphs</title>
 <style>
+/* Dark theme base */
 body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     padding: 24px;
-    background: #f9f9f9;
-    color: #222;
+    background-color: #121212;
+    color: #e0e0e0;
+    line-height: 1.5;
 }
-h1 { margin-bottom: 16px; }
-p { margin-bottom: 24px; }
+h1 {
+    margin-bottom: 16px;
+    color: #ffffff;
+}
+p {
+    margin-bottom: 24px;
+    color: #b0b0b0;
+}
 .graph-container {
     margin-bottom: 32px;
-    border: 1px solid #ddd;
+    border: 1px solid #333;
     border-radius: 8px;
-    background: #fff;
-    padding: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    background-color: #1e1e1e;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 .graph-container h2 {
     margin-top: 0;
     font-size: 16px;
-    color: #333;
+    color: #f0f0f0;
 }
 .svg-wrap {
     overflow-x: auto;       /* horizontal scroll if SVG too wide */
     overflow-y: hidden;
-    border: 1px dashed #ccc;
-    padding: 6px;
-    background: #fafafa;
+    border: 1px dashed #555;
+    padding: 8px;
+    background-color: #2b2b2b;
 }
 .svg-wrap object {
     max-width: 100%;        /* scale down to container width */
@@ -115,12 +123,18 @@ p { margin-bottom: 24px; }
 }
 a.meta {
     display: inline-block;
-    margin-top: 6px;
+    margin-top: 8px;
     font-size: 13px;
-    color: #0066cc;
+    color: #4ea1ff;
     text-decoration: none;
 }
 a.meta:hover { text-decoration: underline; }
+code {
+    background-color: #2b2b2b;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: #4ea1ff;
+}
 </style>
 </head>
 <body>
