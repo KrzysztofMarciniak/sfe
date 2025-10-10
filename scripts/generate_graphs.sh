@@ -5,9 +5,8 @@ set -eu
 # - Generates .dot and .svg callgraphs using cflow + dot
 # - Outputs into docs/graphs and a simple docs/index.html
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$( cd "$( echo "${0%/*}" )" && pwd )/.."
 OUTDIR="$ROOT/docs/graphs"
-mkdir -p "$OUTDIR"
 
 # collect source files
 BACKEND_C=$(find "$ROOT/backend" -maxdepth 1 -name '*.c' -print)
