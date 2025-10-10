@@ -38,9 +38,6 @@ if [ ${#BACKEND_C[@]} -eq 0 ] && [ ${#LIB_C[@]} -eq 0 ]; then
     exit 1
 fi
 
-command -v cflow >/dev/null 2>&1 || { echo "cflow not installed"; exit 1; }
-command -v dot >/dev/null 2>&1 || { echo "dot not installed"; exit 1; }
-
 # Generate per-backend graph
 for src in "${BACKEND_C[@]}"; do
     bn="${src##*/}"
