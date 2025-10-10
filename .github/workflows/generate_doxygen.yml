@@ -40,4 +40,4 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "chore(doxygen): update generated docs [ci skip]"
             git push origin HEAD:main
-        fi
+            fi
